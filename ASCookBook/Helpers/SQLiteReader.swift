@@ -7,11 +7,11 @@
 import Foundation
 import SQLite3
 
-func readRecipes(dbPath: String) -> [(Int, String, String?, String, String, Int, Int, Int?)] {
+func readRecipes(dbPath: String) -> [(Int, String, String?, String, String, Int, Int, Int?, String?, Int?, Int?, Int?)] {
     var db: OpaquePointer?
-    var results: [(Int, String, String?, String, String, Int, Int, Int?)] = []
+    var results: [(Int, String, String?, String, String, Int, Int, Int?, String?, Int?, Int?, Int?)] = []
     if sqlite3_open(dbPath, &db) == SQLITE_OK {
-        let query = "SELECT Z_PK, ZNAME, ZORT, ZPORTIONEN, ZZUTATEN, ZJAHRESZEIT, ZKATEGORIE, ZREZEPTPHOTO FROM ZREZEPT"
+        let query = "SELECT Z_PK, ZNAME, ZORT, ZPORTIONEN, ZZUTATEN, ZJAHRESZEIT, ZKATEGORIE, ZREZEPTPHOTO, ZART, ZAMUSEGUEULE, ZSNACK, ZSUPPE FROM ZREZEPT"
         var stmt: OpaquePointer?
         if sqlite3_prepare(db, query, -1, &stmt, nil) == SQLITE_OK {
             while sqlite3_step(stmt) == SQLITE_ROW {
@@ -28,7 +28,16 @@ func readRecipes(dbPath: String) -> [(Int, String, String?, String, String, Int,
                 let seasonId = Int(sqlite3_column_int(stmt, 5))
                 let categoryId = Int(sqlite3_column_int(stmt, 6))
                 let photoId = Int(sqlite3_column_int(stmt, 7))
-                results.append((id, name, place, portions, ingredients, seasonId, categoryId, photoId))
+                let kindString: String?
+                if sqlite3_column_type(stmt, 8) != SQLITE_NULL {
+                    kindString = String(cString: sqlite3_column_text(stmt, 8))
+                } else {
+                    kindString = nil
+                }
+                let amusegueule = Int(sqlite3_column_int(stmt, 9))
+                let snack = Int(sqlite3_column_int(stmt, 10))
+                let soup = Int(sqlite3_column_int(stmt, 11))
+                results.append((id, name, place, portions, ingredients, seasonId, categoryId, photoId, kindString, amusegueule, snack, soup))
             }
         }
     }

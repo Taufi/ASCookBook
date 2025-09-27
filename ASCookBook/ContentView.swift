@@ -23,6 +23,12 @@ struct ContentView: View {
                     Text(recipe.season?.title ?? "Unknown season")
                     Text(recipe.category?.title ?? "Unknown category")
                     Text(String(recipe.photoId ?? 0))
+                    if !recipe.kinds.isEmpty {
+                        Text(String(recipe.kinds[0].title))
+                    }
+                    if !recipe.specials.isEmpty {
+                        Text(String(recipe.specials[0].title))
+                    }
                 }
             }
         }

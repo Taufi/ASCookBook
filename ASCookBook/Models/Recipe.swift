@@ -15,6 +15,8 @@ final class Recipe {
     var season: Season?
     var category: Category?
     var photoId: Int?
+    @Relationship var kinds: [Kind] = []
+    @Relationship var specials: [Special] = []
     
     init(name: String, place: String? = nil, ingredients: String, portions: String, season: Season? = nil, category: Category? = nil, photoId: Int? = nil) {
         self.name = name

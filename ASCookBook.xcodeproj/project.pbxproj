@@ -7,12 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		61CB43292E8419D500B739BD /* CookBook.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 61CB43282E8419D500B739BD /* CookBook.sqlite */; };
+		6183DEDC2E886E5D001FB2F8 /* CookBook.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 61F247682E886B340064E67D /* CookBook.sqlite */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		61CB43192E8418E900B739BD /* ASCookBook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ASCookBook.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		61CB43282E8419D500B739BD /* CookBook.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = CookBook.sqlite; sourceTree = "<group>"; };
+		61F247682E886B340064E67D /* CookBook.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = CookBook.sqlite; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -54,7 +54,7 @@
 		61CB43272E84193B00B739BD /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				61CB43282E8419D500B739BD /* CookBook.sqlite */,
+				61F247682E886B340064E67D /* CookBook.sqlite */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -123,7 +123,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				61CB43292E8419D500B739BD /* CookBook.sqlite in Resources */,
+				6183DEDC2E886E5D001FB2F8 /* CookBook.sqlite in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
