@@ -10,6 +10,7 @@ func importLegacyDatabase(dbPath: String, context: ModelContext) {
     var seasonMap: [Int: Season] = [:]
     var categoryMap: [Int: Category] = [:]
     
+    // images where string in recipe table before. Here I create a join table
     var kindMap = [String: Kind]()
     var kind = Kind(title: "Fisch")
     kindMap["Fisch"] = kind
@@ -20,6 +21,7 @@ func importLegacyDatabase(dbPath: String, context: ModelContext) {
     kind = Kind(title: "Vegan")
     kindMap["Vegan"] = kind
     
+    // three special titles where attrubutes in recipe table before. Here I create a join table.
     var specialMap = [Int: Special]()
     specialMap[0] = Special(title: "AmuseGueule")
     specialMap[1] = Special(title: "Snack")
@@ -58,4 +60,7 @@ func importLegacyDatabase(dbPath: String, context: ModelContext) {
         }
         context.insert(recipe)
     }
+    
+    readImages(dbPath: dbPath)
+    
 }
