@@ -82,6 +82,46 @@ func readCategories(dbPath: String) -> [(Int,String)] {
     return results
 }
 
+func readImages(dbPath: String) {
+    var db: OpaquePointer?
+    if sqlite3_open(dbPath, &db) == SQLITE_OK {
+        let query = "SELECT Z_PK, ZREZEPTPHOTO from ZREZEPTPHOTO WHERE ZREZEPT IS NOT NULL;"
+        var stmt: OpaquePointer?
+        
+        if sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK {
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                // Get ZREZEPT
+                let rezeptValue = sqlite3_column_type(stmt, 0) != SQLITE_NULL ? sqlite3_column_int(stmt, 0) : -1
+                // Get the image blob
+                if let blobPointer = sqlite3_column_blob(stmt, 1) {
+                    let blobSize = Int(sqlite3_column_bytes(stmt, 1))
+                    let blobData = Data(bytes: blobPointer, count: blobSize)
+                    // Create file name
+                    let fileName: String
+                    if rezeptValue >= 0 {
+                        fileName = String(format: "image%d.jpg", rezeptValue)
+                    } else {
+                        // Fallback if ZREZEPT is null
+                        fileName = UUID().uuidString + ".jpg"
+                    }
+                    let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                    let imageURL = appSupportURL.appendingPathComponent(fileName)
+                    do {
+                        try blobData.write(to: imageURL)
+                        print("Saved: \(imageURL.path)")
+                    } catch {
+                        print("Error saving \(fileName): \(error)")
+                    }
+                }
+            }
+            sqlite3_finalize(stmt)
+        } else {
+            print("Failed to prepare statement")
+        }
+    }
+    sqlite3_close(db)
+}
+
 func getWritableDatabaseURL() -> URL? {
     let fileManager = FileManager.default
 
