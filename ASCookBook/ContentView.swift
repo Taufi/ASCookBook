@@ -13,33 +13,31 @@ struct ContentView: View {
     @Environment(\.modelContext) private var context
     @Query var recipes: [Recipe]
     
+    // add navigation destination
     var body: some View {
-        List {
-            ForEach(recipes) { recipe in
-                VStack(alignment: .leading) {
-                    Text(recipe.name)
-                        .fontWeight(.bold)
-                    Text(recipe.place ?? "Unknown place")
-                    Text(recipe.season?.title ?? "Unknown season")
-                    Text(recipe.category?.title ?? "Unknown category")
-                    Text(String(recipe.photoId ?? 0))
-                    if !recipe.kinds.isEmpty {
-                        Text(String(recipe.kinds[0].title))
-                    }
-                    if !recipe.specials.isEmpty {
-                        Text(String(recipe.specials[0].title))
+        NavigationStack {
+            List {
+                ForEach(recipes) { recipe in
+                    NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
+                        VStack(alignment: .leading) {
+                            Text(recipe.name)
+                                .fontWeight(.bold)
+                            Text(recipe.place ?? "Unknown place")
+                            Text(recipe.season?.title ?? "Unknown season")
+                            Text(recipe.category?.title ?? "Unknown category")
+                            Text(String(recipe.photoId ?? 0))
+                            if !recipe.kinds.isEmpty {
+                                Text(String(recipe.kinds[0].title))
+                            }
+                            if !recipe.specials.isEmpty {
+                                Text(String(recipe.specials[0].title))
+                            }
+                        }
                     }
                 }
+                .navigationTitle("Rezepte")
             }
         }
-        .task {
-            if recipes.isEmpty {
-                if let dbURL = getWritableDatabaseURL() {
-                    importLegacyDatabase(dbPath: dbURL.path, context: context)
-                }
-            }
-        }
-        
     }
 }
 
