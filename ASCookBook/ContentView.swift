@@ -13,6 +13,7 @@ import UIKit
 struct ContentView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: [SortDescriptor(\Recipe.name)]) private var recipes: [Recipe]
+    @State private var searchText: String = ""
     
     func imageForRecipe(photoId: Int?) -> Image? {
         guard let photoId = photoId else { return nil }
@@ -27,11 +28,15 @@ struct ContentView: View {
         }
     }
     
+    func searchForText(recipe: Recipe, searchText: String) -> Bool {
+        return recipe.name.localizedCaseInsensitiveContains(searchText) || recipe.ingredients.localizedCaseInsensitiveContains(searchText)
+    }
+    
     // add navigation destination
     var body: some View {
         NavigationStack {
             List {
-                ForEach(recipes) { recipe in
+                ForEach(recipes.filter { searchText.isEmpty || searchForText(recipe: $0, searchText: searchText) }) { recipe in
                     NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
                         HStack(alignment: .top, spacing: 12) {
                             if let image = imageForRecipe(photoId: recipe.photoId) {
@@ -71,8 +76,9 @@ struct ContentView: View {
                         }
                     }
                 }
-                .navigationTitle("Rezepte")
             }
+            .searchable(text: $searchText, prompt: "Suche Rezepte")
+            .navigationTitle("Rezepte")
         }
     }
 }
