@@ -10,33 +10,49 @@ struct RecipeDetailView: View {
     var recipe: Recipe
     
     var body : some View {
-        VStack {
+        ScrollView {
             Text(recipe.name)
-                .font(.largeTitle)
+                .font(.title)
                 .padding()
-                let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-                let imageURL = appSupportURL.appendingPathComponent("image" + String(recipe.photoId ?? 0) + ".jpg")
-                if FileManager.default.fileExists(atPath: imageURL.path) {
-                    // show image from file system
-                    if let uiImage = UIImage(contentsOfFile: imageURL.path) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .padding()
-                    } else {
-                        Text("Bild konnte nicht geladen werden")
-                            .padding()
-                    }
-                } else {
-                    Text("Kein Bild verfügbar")
-                        .padding()
-                }
+            image
+            ingredients
         }
     }
+
+    private var image : some View {
+        VStack {
+            let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            let imageURL = appSupportURL.appendingPathComponent("image" + String(recipe.photoId ?? 0) + ".jpg")
+            if FileManager.default.fileExists(atPath: imageURL.path) {
+                // show image from file system
+                if let uiImage = UIImage(contentsOfFile: imageURL.path) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .padding()
+                } else {
+                    Text("Bild konnte nicht geladen werden")
+                        .padding()
+                }
+            }
+        }
+    }
+    
+    private var ingredients: some View {
+        Section {
+            Text(recipe.ingredients)
+                .multilineTextAlignment(.leading)
+                .padding()
+        } header: {
+            Text("Zutaten und Zubereitung")
+                .fontWeight(.bold)
+        }
+    }
+    
 }
 
 #Preview {
-    RecipeDetailView(recipe: Recipe(name: "Test", place: "Test", ingredients: "Test", portions: "Test", season: Season(title: "Test"), category: Category(title: "Test"), photoId: 1))
+    RecipeDetailView(recipe: Recipe(name: "Testrezept", place: "Test", ingredients: "100 g Zucker,\n100 g Eiweiß", portions: "Test", season: Season(title: "Test"), category: Category(title: "Test"), photoId: 1))
 }
 
 
