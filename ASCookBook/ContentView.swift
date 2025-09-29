@@ -8,10 +8,24 @@
 import SwiftUI
 import SwiftData
 import SQLite3
+import UIKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var context
-    @Query var recipes: [Recipe]
+    @Query(sort: [SortDescriptor(\Recipe.name)]) private var recipes: [Recipe]
+    
+    func imageForRecipe(photoId: Int?) -> Image? {
+        guard let photoId = photoId else { return nil }
+        let fileManager = FileManager.default
+        let urls = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+        guard let appSupportURL = urls.first else { return nil }
+        let imageURL = appSupportURL.appendingPathComponent("image\(photoId).jpg")
+        if let uiImage = UIImage(contentsOfFile: imageURL.path) {
+            return Image(uiImage: uiImage)
+        } else {
+            return nil
+        }
+    }
     
     // add navigation destination
     var body: some View {
@@ -19,18 +33,40 @@ struct ContentView: View {
             List {
                 ForEach(recipes) { recipe in
                     NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
-                        VStack(alignment: .leading) {
-                            Text(recipe.name)
-                                .fontWeight(.bold)
-                            Text(recipe.place ?? "Unknown place")
-                            Text(recipe.season?.title ?? "Unknown season")
-                            Text(recipe.category?.title ?? "Unknown category")
-                            Text(String(recipe.photoId ?? 0))
-                            if !recipe.kinds.isEmpty {
-                                Text(String(recipe.kinds[0].title))
+                        HStack(alignment: .top, spacing: 12) {
+                            if let image = imageForRecipe(photoId: recipe.photoId) {
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+//                                    .frame(width: 44, height: 44)
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            } else  {
+                                Image("Plate")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                //                                    .frame(width: 44, height: 44)
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
-                            if !recipe.specials.isEmpty {
-                                Text(String(recipe.specials[0].title))
+//                            } else {
+//                                RoundedRectangle(cornerRadius: 8)
+//                                    .fill(Color.gray.opacity(0.2))
+//                                    .frame(width: 80, height: 80)
+//                            }
+                            VStack(alignment: .leading) {
+                                Text(recipe.name)
+                                    .fontWeight(.bold)
+//                                Text(recipe.place ?? "Unknown place")
+//                                Text(recipe.season?.title ?? "Unknown season")
+//                                Text(recipe.category?.title ?? "Unknown category")
+//                                Text(String(recipe.photoId ?? 0))
+//                                if !recipe.kinds.isEmpty {
+//                                    Text(String(recipe.kinds[0].title))
+//                                }
+//                                if !recipe.specials.isEmpty {
+//                                    Text(String(recipe.specials[0].title))
+//                                }
                             }
                         }
                     }
