@@ -7,7 +7,7 @@
 import SwiftUI
 
 struct RecipeDetailView: View {
-    var recipe: Recipe
+    @Bindable var recipe: Recipe
     
     var body : some View {
         ScrollView {
@@ -40,8 +40,9 @@ struct RecipeDetailView: View {
     
     private var ingredients: some View {
         Section {
-            Text(recipe.ingredients)
+            TextEditor(text: $recipe.ingredients)
                 .multilineTextAlignment(.leading)
+                .frame(minHeight: 100)
                 .padding()
         } header: {
             Text("Zutaten und Zubereitung")
