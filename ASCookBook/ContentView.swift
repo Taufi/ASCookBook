@@ -12,7 +12,8 @@ import UIKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var context
-    @Query(sort: \Recipe.name) private var recipes: [Recipe]
+//    @Query(sort: \Recipe.name) private var recipes: [Recipe]
+    @Query(sort: [SortDescriptor(\Recipe.name)]) private var recipes: [Recipe]
     @State private var searchText: String = ""
     
     var filteredRecipes: [Recipe] {
@@ -64,11 +65,11 @@ struct ContentView: View {
 //                                    .frame(width: 80, height: 80)
 //                            }
                             VStack(alignment: .leading) {
-                                Text(recipe.name)
-                                    .fontWeight(.bold)
+                                Text(recipe.name).bold()
 //                                Text(recipe.place ?? "Unknown place")
 //                                Text(recipe.season?.title ?? "Unknown season")
                                 Text(recipe.category?.title ?? "Unknown category")
+                                    .font(.subheadline).foregroundStyle(.secondary)
 //                                Text(String(recipe.photoId ?? 0))
 //                                if !recipe.kinds.isEmpty {
 //                                    Text(String(recipe.kinds[0].title))
@@ -78,6 +79,13 @@ struct ContentView: View {
 //                                }
                             }
                         }
+                    }
+                }
+            }
+            .task {
+                if recipes.isEmpty {
+                    if let dbURL = getWritableDatabaseURL() {
+                        importLegacyDatabase(dbPath: dbURL.path, context: context)
                     }
                 }
             }
