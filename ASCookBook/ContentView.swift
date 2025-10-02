@@ -40,47 +40,30 @@ struct ContentView: View {
     // add navigation destination
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(filteredRecipes) { recipe in
+            List(filteredRecipes) { recipe in
                     NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
                         HStack(alignment: .top, spacing: 12) {
                             if let image = imageForRecipe(photoId: recipe.photoId) {
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
-//                                    .frame(width: 44, height: 44)
                                     .frame(width: 80, height: 80)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                             } else  {
                                 Image("Plate")
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
-                                //                                    .frame(width: 44, height: 44)
                                     .frame(width: 80, height: 80)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
-//                            } else {
-//                                RoundedRectangle(cornerRadius: 8)
-//                                    .fill(Color.gray.opacity(0.2))
-//                                    .frame(width: 80, height: 80)
-//                            }
                             VStack(alignment: .leading) {
                                 Text(recipe.name).bold()
-//                                Text(recipe.place ?? "Unknown place")
-//                                Text(recipe.season?.title ?? "Unknown season")
                                 Text(recipe.category?.title ?? "Unknown category")
                                     .font(.subheadline).foregroundStyle(.secondary)
-//                                Text(String(recipe.photoId ?? 0))
-//                                if !recipe.kinds.isEmpty {
-//                                    Text(String(recipe.kinds[0].title))
-//                                }
-//                                if !recipe.specials.isEmpty {
-//                                    Text(String(recipe.specials[0].title))
-//                                }
+                                Text(recipe.kinds.first?.title ?? "")
                             }
                         }
                     }
-                }
             }
             .task {
                 if recipes.isEmpty {
