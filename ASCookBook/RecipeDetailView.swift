@@ -26,7 +26,14 @@ struct RecipeDetailView: View {
                         .font(.title)
                         .padding()
                     image
-                    Text(recipe.kinds.map(\.title).joined(separator: ", "))
+                    if !recipe.kinds.isEmpty {
+                        Section {
+                            Text(recipe.kinds.title)
+                        } header: {
+                            Text("Art des Rezeptes")
+                                .fontWeight(.bold)
+                        }
+                    }
                     showIngredients
                 }
             }
@@ -92,56 +99,11 @@ struct RecipeDetailView: View {
     
     private var editKind: some View {
         Section {
-            Toggle("Vegan", isOn: Binding<Bool>(
-                get: { recipe.kinds.contains(where: { $0.title == "Vegan" }) },
-                set: { isOn in
-                    if isOn {
-                        if !recipe.kinds.contains(where: { $0.title == "Vegan" }) {
-                            recipe.kinds.append(Kind(title: "Vegan"))
-                        }
-                    } else {
-                        recipe.kinds.removeAll(where: { $0.title == "Vegan" })
-                    }
-                }
-            ))
-            Toggle("Vegetarisch", isOn: Binding<Bool>(
-                get: { recipe.kinds.contains(where: { $0.title == "Vegetarisch" }) },
-                set: { isOn in
-                    if isOn {
-                        if !recipe.kinds.contains(where: { $0.title == "Vegetarisch" }) {
-                            recipe.kinds.append(Kind(title: "Vegetarisch"))
-                        }
-                    } else {
-                        recipe.kinds.removeAll(where: { $0.title == "Vegetarisch" })
-                    }
-                }
-            ))
-            Toggle("Fisch", isOn: Binding<Bool>(
-                get: { recipe.kinds.contains(where: { $0.title == "Fisch" }) },
-                set: { isOn in
-                    if isOn {
-                        if !recipe.kinds.contains(where: { $0.title == "Fisch" }) {
-                            recipe.kinds.append(Kind(title: "Fisch"))
-                        }
-                    } else {
-                        recipe.kinds.removeAll(where: { $0.title == "Fisch" })
-                    }
-                }
-            ))
-            Toggle("Fleisch", isOn: Binding<Bool>(
-                get: { recipe.kinds.contains(where: { $0.title == "Fleisch" }) },
-                set: { isOn in
-                    if isOn {
-                        if !recipe.kinds.contains(where: { $0.title == "Fleisch" }) {
-                            recipe.kinds.append(Kind(title: "Fleisch"))
-                        }
-                    } else {
-                        recipe.kinds.removeAll(where: { $0.title == "Fleisch" })
-                    }
-                }
-            ))
-        } header: {
-            Text("Art")
+            ForEach(Kind.allCases, id: \.rawValue) { kind in
+                Toggle(kind.displayName, isOn: binding(for: kind))
+            }
+        }  header: {
+            Text("Art des Rezeptes")
                 .fontWeight(.bold)
         }
     }
@@ -157,11 +119,25 @@ struct RecipeDetailView: View {
         }
     }
     
+    // Helper: bind a toggle to OptionSet membership
+    private func binding(for kind: Kind) -> Binding<Bool> {
+        Binding(
+            get: { recipe.kinds.contains(kind) },
+            set: { isOn in
+                if isOn {
+                    recipe.kinds.insert(kind)
+                } else {
+                    recipe.kinds.remove(kind)
+                }
+            }
+        )
+    }
+    
     
     
 }
 
 #Preview {
-    RecipeDetailView(recipe: Recipe(name: "Testrezept", place: "Test", ingredients: "100 g Zucker,\n100 g Eiweiß", portions: "Test", season: Season(title: "Test"), category: Category(title: "Test"), photoId: 1))
+    RecipeDetailView(recipe: Recipe(name: "Testrezept", place: "Test", ingredients: "100 g Zucker,\n100 g Eiweiß", portions: "Test", season: Season(title: "Test"), category: Category(title: "Test"), photoId: 1, kinds: [.fish, .meat]))
 }
 

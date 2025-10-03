@@ -10,17 +10,6 @@ func importLegacyDatabase(dbPath: String, context: ModelContext) {
     var seasonMap: [Int: Season] = [:]
     var categoryMap: [Int: Category] = [:]
     
-    // images where string in recipe table before. Here I create a join table
-    var kindMap = [String: Kind]()
-    var kind = Kind(title: "Fisch")
-    kindMap["Fisch"] = kind
-    kind = Kind(title: "Fleisch")
-    kindMap["Fleisch"] = kind
-    kind = Kind(title: "Vegetarisch")
-    kindMap["Vegetarisch"] = kind
-    kind = Kind(title: "Vegan")
-    kindMap["Vegan"] = kind
-    
     // three special titles where attrubutes in recipe table before. Here I create a join table.
     var specialMap = [Int: Special]()
     specialMap[0] = Special(title: "AmuseGueule")
@@ -43,12 +32,22 @@ func importLegacyDatabase(dbPath: String, context: ModelContext) {
     for (_, name, place, portions, ingredients, seasonId, categoryId, photoId, kindString, amusegueule, snack, soup) in readRecipes(dbPath: dbPath) {
         let season = seasonMap[seasonId]
         let category = categoryMap[categoryId]
-        let recipe = Recipe(name: name, place: place, ingredients: ingredients, portions: portions, season: season, category: category, photoId: photoId)
+        let recipe = Recipe(name: name, place: place, ingredients: ingredients, portions: portions, season: season, category: category, photoId: photoId, kinds: [])
+        
         if kindString != nil {
-            if let kind = kindMap[kindString!] {
-                recipe.kinds.append(kind)
+            switch kindString! {
+                case "Vegan":
+                    recipe.kinds = Kind(rawValue: 1 << 0)
+                case "Vegetarisch":
+                recipe.kinds = Kind(rawValue: 1 << 1)
+                case "Fisch":
+                recipe.kinds = Kind(rawValue: 1 << 2)
+                case "Fleisch":
+                recipe.kinds = Kind(rawValue: 1 << 3)
+                default: break
             }
         }
+        
         if amusegueule == 1 {
             recipe.specials.append(specialMap[0]!)
         }

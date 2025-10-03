@@ -60,7 +60,7 @@ struct ContentView: View {
                                 Text(recipe.name).bold()
                                 Text(recipe.category?.title ?? "Unknown category")
                                     .font(.subheadline).foregroundStyle(.secondary)
-                                Text(recipe.kinds.first?.title ?? "")
+                                Text(recipe.kinds.title)
                             }
                         }
                     }
