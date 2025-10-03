@@ -7,12 +7,9 @@
 
 import SwiftUI
 import SwiftData
-import SQLite3
-import UIKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var context
-//    @Query(sort: \Recipe.name) private var recipes: [Recipe]
     @Query(sort: [SortDescriptor(\Recipe.name)]) private var recipes: [Recipe]
     @State private var searchText: String = ""
     

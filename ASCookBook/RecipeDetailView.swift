@@ -132,9 +132,6 @@ struct RecipeDetailView: View {
             }
         )
     }
-    
-    
-    
 }
 
 #Preview {
