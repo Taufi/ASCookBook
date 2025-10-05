@@ -5,6 +5,7 @@
 //  Created by Klaus Dresbach on 26.09.25.
 //
 import SwiftData
+import SwiftUI
 
 @Model
 final class Recipe {
@@ -16,9 +17,9 @@ final class Recipe {
     var category: Category?
     var photoId: Int?
     var kinds: Kind
-    @Relationship var specials: [Special] = []
+    var specials: Special
     
-    init(name: String, place: String? = nil, ingredients: String, portions: String, season: Season? = nil, category: Category? = nil, photoId: Int? = nil, kinds: Kind) {
+    init(name: String, place: String? = nil, ingredients: String, portions: String, season: Season? = nil, category: Category? = nil, photoId: Int? = nil, kinds: Kind, specials: Special) {
         self.name = name
         self.place = place
         self.ingredients = ingredients
@@ -27,5 +28,23 @@ final class Recipe {
         self.category = category
         self.photoId = photoId
         self.kinds = kinds
+        self.specials = specials
     }
 }
+
+// Different approach than with kind to test both options
+@MainActor extension Recipe {
+    func binding(for special: Special) -> Binding<Bool> {
+        Binding(
+            get: { self.specials.contains(special) },
+            set: { isOn in
+                    if isOn {
+                    self.specials.insert(special)
+                } else {
+                    self.specials.remove(special)
+                }
+            }
+        )
+    }
+}
+

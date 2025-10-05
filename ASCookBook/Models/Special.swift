@@ -6,12 +6,26 @@
 //
 import SwiftData
 
-@Model
-final class Special {
-    var title: String
-    @Relationship(inverse: \Recipe.specials) var recipes: [Recipe] = []
+struct Special: OptionSet, Codable {
+    let rawValue: Int
     
-    init(title: String) {
-        self.title = title
+    static let amuseGuele = Special(rawValue: 1 << 0)
+    static let snack = Special(rawValue: 1 << 1)
+    static let soup = Special(rawValue: 1 << 2)
+    
+    static let allCases: [Special] = [.amuseGuele, .snack, .soup]
+    
+    var displayName: String {
+        switch self {
+        case .amuseGuele: return "Amuse Gueule"
+        case .snack: return "Snack"
+        case .soup: return "Suppe"
+        default: return "Unknown"
+        }
     }
+    
+    var title: String {
+        Special.allCases.filter { self.contains($0) }.map { $0.displayName }.joined(separator: ", ")
+    }
+    
 }

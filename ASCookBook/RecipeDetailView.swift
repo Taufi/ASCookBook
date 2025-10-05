@@ -18,22 +18,17 @@ struct RecipeDetailView: View {
                 if isEditing {
                     TextField("Name des Rezeptes", text: $recipe.name)
                         .textFieldStyle(.roundedBorder)
-                    image
-                    editKind
+                    showImage
+                    editKinds
+                    editSpecials
                     editIngredients
                 } else {
                     Text(recipe.name)
                         .font(.title)
                         .padding()
-                    image
-                    if !recipe.kinds.isEmpty {
-                        Section {
-                            Text(recipe.kinds.title)
-                        } header: {
-                            Text("Art des Rezeptes")
-                                .fontWeight(.bold)
-                        }
-                    }
+                    showImage
+                    showKinds
+                    showSpecials
                     showIngredients
                 }
             }
@@ -69,12 +64,11 @@ struct RecipeDetailView: View {
         }
     }
 
-    private var image : some View {
+    private var showImage : some View {
         VStack {
             let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
             let imageURL = appSupportURL.appendingPathComponent("image" + String(recipe.photoId ?? 0) + ".jpg")
             if FileManager.default.fileExists(atPath: imageURL.path) {
-                // show image from file system
                 if let uiImage = UIImage(contentsOfFile: imageURL.path) {
                     Image(uiImage: uiImage)
                         .resizable()
@@ -97,13 +91,51 @@ struct RecipeDetailView: View {
         }
     }
     
-    private var editKind: some View {
+    private var showKinds: some View {
+        Group {
+            if !recipe.kinds.isEmpty {
+                Section {
+                    Text(recipe.kinds.title)
+                } header: {
+                    Text("Art des Rezeptes")
+                        .fontWeight(.bold)
+                }
+            }
+        }
+    }
+    
+    private var showSpecials: some View {
+        Group {
+            if !recipe.specials.isEmpty {
+                Section {
+                    Text(recipe.specials.title)
+                } header: {
+                    Text("Verwendung als...")
+                        .fontWeight(.bold)
+                }
+            }
+        }
+    }
+    
+    private var editKinds: some View {
         Section {
             ForEach(Kind.allCases, id: \.rawValue) { kind in
-                Toggle(kind.displayName, isOn: binding(for: kind))
+                Toggle(kind.displayName, isOn: $recipe.binding(for: kind))
             }
         }  header: {
             Text("Art des Rezeptes")
+                .fontWeight(.bold)
+        }
+    }
+    
+    private var editSpecials: some View {
+        Section {
+            ForEach(Special.allCases, id: \.rawValue) { special in
+                // Different approach than with kind to test both options: recipe and binding $recipe
+                Toggle(special.displayName, isOn: recipe.binding(for: special))
+            }
+        }  header: {
+            Text("Verwendung als...")
                 .fontWeight(.bold)
         }
     }
@@ -118,23 +150,8 @@ struct RecipeDetailView: View {
                 .fontWeight(.bold)
         }
     }
-    
-    // Helper: bind a toggle to OptionSet membership
-    private func binding(for kind: Kind) -> Binding<Bool> {
-        Binding(
-            get: { recipe.kinds.contains(kind) },
-            set: { isOn in
-                if isOn {
-                    recipe.kinds.insert(kind)
-                } else {
-                    recipe.kinds.remove(kind)
-                }
-            }
-        )
-    }
 }
 
 #Preview {
-    RecipeDetailView(recipe: Recipe(name: "Testrezept", place: "Test", ingredients: "100 g Zucker,\n100 g Eiweiß", portions: "Test", season: Season(title: "Test"), category: Category(title: "Test"), photoId: 1, kinds: [.fish, .meat]))
+    RecipeDetailView(recipe: Recipe(name: "Testrezept", place: "Test", ingredients: "100 g Zucker,\n100 g Eiweiß", portions: "Test", season: Season(title: "Test"), category: Category(title: "Test"), photoId: 1, kinds: [.fish, .meat], specials: [.soup, .snack]))
 }
-

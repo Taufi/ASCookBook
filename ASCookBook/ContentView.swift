@@ -34,7 +34,6 @@ struct ContentView: View {
         }
     }
     
-    // add navigation destination
     var body: some View {
         NavigationStack {
             List(filteredRecipes) { recipe in
