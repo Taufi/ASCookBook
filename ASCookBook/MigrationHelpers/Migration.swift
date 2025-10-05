@@ -10,12 +10,6 @@ func importLegacyDatabase(dbPath: String, context: ModelContext) {
     var seasonMap: [Int: Season] = [:]
     var categoryMap: [Int: Category] = [:]
     
-    // three special titles where attrubutes in recipe table before. Here I create a join table.
-    var specialMap = [Int: Special]()
-    specialMap[0] = Special(title: "AmuseGueule")
-    specialMap[1] = Special(title: "Snack")
-    specialMap[2] = Special(title: "Suppe")
-    
     
     for (id, title) in readSeasons(dbPath: dbPath) {
         let season = Season(title: title)
@@ -32,30 +26,31 @@ func importLegacyDatabase(dbPath: String, context: ModelContext) {
     for (_, name, place, portions, ingredients, seasonId, categoryId, photoId, kindString, amusegueule, snack, soup) in readRecipes(dbPath: dbPath) {
         let season = seasonMap[seasonId]
         let category = categoryMap[categoryId]
-        let recipe = Recipe(name: name, place: place, ingredients: ingredients, portions: portions, season: season, category: category, photoId: photoId, kinds: [])
+        let recipe = Recipe(name: name, place: place, ingredients: ingredients, portions: portions, season: season, category: category, photoId: photoId, kinds: [], specials: []) 
         
         if kindString != nil {
             switch kindString! {
                 case "Vegan":
-                    recipe.kinds = Kind(rawValue: 1 << 0)
+                    recipe.kinds = .vegan
                 case "Vegetarisch":
-                recipe.kinds = Kind(rawValue: 1 << 1)
+                    recipe.kinds = .vegetarian
                 case "Fisch":
-                recipe.kinds = Kind(rawValue: 1 << 2)
+                    recipe.kinds = .fish
                 case "Fleisch":
-                recipe.kinds = Kind(rawValue: 1 << 3)
+                    recipe.kinds = .meat
                 default: break
             }
         }
         
+
         if amusegueule == 1 {
-            recipe.specials.append(specialMap[0]!)
+            recipe.specials.insert(.amuseGuele)
         }
         if snack == 1 {
-            recipe.specials.append(specialMap[1]!)
+            recipe.specials.insert(.snack)
         }
         if soup == 1 {
-            recipe.specials.append(specialMap[2]!)
+            recipe.specials.insert(.soup)
         }
         context.insert(recipe)
     }
