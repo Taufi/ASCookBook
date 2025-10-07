@@ -28,5 +28,4 @@ struct Kind: OptionSet, Codable {
     var title: String {
         Kind.allCases.filter { self.contains($0) }.map { $0.displayName }.joined(separator: ", ")
     }
-    
 }

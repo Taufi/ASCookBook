@@ -34,6 +34,22 @@ struct ContentView: View {
         }
     }
     
+    private func addNewRecipe() {
+        let newRecipe = Recipe(
+            name: "Neues Rezept",
+            place: "",
+            ingredients: "",
+            portions: "",
+            season: Season.fetchOrCreate(title: "immer", in: context),
+            category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
+            photoId: nil,
+            kinds: Kind(rawValue: 1),
+            specials: Special(rawValue: 0),
+        )
+        context.insert(newRecipe)
+        try? context.save()
+    }
+    
     var body: some View {
         NavigationStack {
             List(filteredRecipes) { recipe in
@@ -70,6 +86,12 @@ struct ContentView: View {
             }
             .searchable(text: $searchText, prompt: "Suche Rezepte")
             .navigationTitle("Rezepte")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: addNewRecipe) {
+                    Label("Add", systemImage: "plus")                    }
+                }
+            }
         }
     }
 }

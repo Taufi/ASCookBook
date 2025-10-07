@@ -7,8 +7,8 @@
 import SwiftData
 
 @Model
-final class Category {
-    var title: String
+final class Category: TitledModel {
+    @Attribute(.unique) var title: String
     @Relationship(inverse: \Recipe.category) var recipes: [Recipe] = []
     
     init(title: String) {
