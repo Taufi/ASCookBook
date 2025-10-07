@@ -95,47 +95,27 @@ struct RecipeDetailView: View {
     }
     
     private var showCategory: some View {
-        Section {
-            Text(recipe.category.title)
-        } header: {
-            Text("Kategorie")
-                .fontWeight(.bold)
-        }
+        showSection(content: recipe.category.title, header: "Kategorie")
     }
     
     private var showSeason: some View {
-        Section {
-            Text(recipe.season.title)
-        } header: {
-            Text("Jahreszeit")
-                .fontWeight(.bold)
-        }
+        showSection(content: recipe.season.title, header: "Jahreszeit")
     }
     
     private var showIngredients: some View {
-        Group {
-            if !recipe.ingredients.isEmpty {
-                Section {
-                    Text(recipe.ingredients)
-                } header: {
-                    Text("Zutaten und Zubereitung")
-                        .fontWeight(.bold)
-                }
-            }
-        }
+        showSection(
+            content: recipe.ingredients,
+            header: "Zutaten und Zubereitung",
+            condition: !recipe.ingredients.isEmpty
+        )
     }
     
     private var showPortions: some View {
-        Group {
-            if !recipe.portions.isEmpty {
-                Section {
-                    Text(recipe.portions)
-                } header: {
-                    Text("Portionen")
-                        .fontWeight(.bold)
-                }
-            }
-        }
+        showSection(
+            content: recipe.portions,
+            header: "Portionen",
+            condition: !recipe.portions.isEmpty
+        )
     }
     
     private var showPlace: some View {
@@ -160,57 +140,35 @@ struct RecipeDetailView: View {
     }
     
     private var showKinds: some View {
-        Group {
-            if !recipe.kinds.isEmpty {
-                Section {
-                    Text(recipe.kinds.title)
-                } header: {
-                    Text("Art des Rezeptes")
-                        .fontWeight(.bold)
-                }
-            }
-        }
+        showSection(
+            content: recipe.kinds.title,
+            header: "Art des Rezeptes",
+            condition: !recipe.kinds.isEmpty
+        )
     }
     
     private var showSpecials: some View {
-        Group {
-            if !recipe.specials.isEmpty {
-                Section {
-                    Text(recipe.specials.title)
-                } header: {
-                    Text("Verwendung als...")
-                        .fontWeight(.bold)
-                }
-            }
-        }
+        showSection(
+            content: recipe.specials.title,
+            header: "Verwendung als...",
+            condition: !recipe.specials.isEmpty
+        )
     }
     
     private var editCategory: some View {
-        Section {
-            Picker("Kategorie", selection: $recipe.category) {
-                ForEach(categories, id: \.title) { category in
-                    Text(category.title)
-                        .tag(category)
-                }
-            }
-        } header: {
-            Text("Kategorie")
-                .fontWeight(.bold)
-        }
+        editPickerSection(
+            selection: $recipe.category,
+            items: categories,
+            header: "Kategorie"
+        )
     }
     
     private var editSeason: some View {
-        Section {
-            Picker("Jahreszeit", selection: $recipe.season) {
-                ForEach(seasons, id: \.title) { season in
-                    Text(season.title)
-                        .tag(season)
-                }
-            }
-        } header: {
-            Text("Jahreszeit")
-                .fontWeight(.bold)
-        }
+        editPickerSection(
+            selection: $recipe.season,
+            items: seasons,
+            header: "Jahreszeit"
+        )
     }
     
     private var editKinds: some View {
@@ -243,6 +201,41 @@ struct RecipeDetailView: View {
                 .border(.gray)
         } header: {
             Text("Zutaten und Zubereitung")
+                .fontWeight(.bold)
+        }
+    }
+    
+    // MARK: - Generic Helper Methods
+    
+    /// Generic method to display a section with optional conditional rendering
+    private func showSection(content: String, header: String, condition: Bool = true) -> some View {
+        Group {
+            if condition {
+                Section {
+                    Text(content)
+                } header: {
+                    Text(header)
+                        .fontWeight(.bold)
+                }
+            }
+        }
+    }
+    
+    /// Generic method to create a picker-based edit section
+    private func editPickerSection<T: TitledModel>(
+        selection: Binding<T>,
+        items: [T],
+        header: String
+    ) -> some View {
+        Section {
+            Picker(header, selection: selection) {
+                ForEach(items, id: \.title) { item in
+                    Text(item.title)
+                        .tag(item)
+                }
+            }
+        } header: {
+            Text(header)
                 .fontWeight(.bold)
         }
     }
