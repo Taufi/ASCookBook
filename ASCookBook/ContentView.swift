@@ -54,7 +54,7 @@ struct ContentView: View {
                             }
                             VStack(alignment: .leading) {
                                 Text(recipe.name).bold()
-                                Text(recipe.category?.title ?? "Unknown category")
+                                Text(recipe.category.title)
                                     .font(.subheadline).foregroundStyle(.secondary)
                                 Text(recipe.kinds.title)
                             }

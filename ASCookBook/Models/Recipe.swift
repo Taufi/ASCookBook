@@ -10,16 +10,16 @@ import SwiftUI
 @Model
 final class Recipe {
     var name: String
-    var place: String?
+    var place: String
     var ingredients: String
     var portions: String
-    var season: Season?
-    var category: Category?
+    var season: Season
+    var category: Category
     var photoId: Int?
     var kinds: Kind
     var specials: Special
     
-    init(name: String, place: String? = nil, ingredients: String, portions: String, season: Season? = nil, category: Category? = nil, photoId: Int? = nil, kinds: Kind, specials: Special) {
+    init(name: String, place: String = "", ingredients: String, portions: String, season: Season, category: Category, photoId: Int? = nil, kinds: Kind, specials: Special) {
         self.name = name
         self.place = place
         self.ingredients = ingredients

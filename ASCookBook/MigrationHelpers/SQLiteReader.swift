@@ -7,9 +7,9 @@
 import Foundation
 import SQLite3
 
-func readRecipes(dbPath: String) -> [(Int, String, String?, String, String, Int, Int, Int?, String?, Int?, Int?, Int?)] {
+func readRecipes(dbPath: String) -> [(Int, String, String, String, String, Int, Int, Int?, String?, Int?, Int?, Int?)] {
     var db: OpaquePointer?
-    var results: [(Int, String, String?, String, String, Int, Int, Int?, String?, Int?, Int?, Int?)] = []
+    var results: [(Int, String, String, String, String, Int, Int, Int?, String?, Int?, Int?, Int?)] = []
     if sqlite3_open(dbPath, &db) == SQLITE_OK {
         let query = "SELECT Z_PK, ZNAME, ZORT, ZPORTIONEN, ZZUTATEN, ZJAHRESZEIT, ZKATEGORIE, ZREZEPTPHOTO, ZART, ZAMUSEGUEULE, ZSNACK, ZSUPPE FROM ZREZEPT"
         var stmt: OpaquePointer?
@@ -17,11 +17,11 @@ func readRecipes(dbPath: String) -> [(Int, String, String?, String, String, Int,
             while sqlite3_step(stmt) == SQLITE_ROW {
                 let id = Int(sqlite3_column_int(stmt, 0))
                 let name = String(cString: sqlite3_column_text(stmt, 1))
-                let place: String?
+                let place: String
                 if sqlite3_column_type(stmt, 2) != SQLITE_NULL {
                     place = String(cString: sqlite3_column_text(stmt, 2))
                 } else {
-                    place = nil
+                    place = ""
                 }
                 let portions = String(cString: sqlite3_column_text(stmt, 3))
                 let ingredients = String(cString: sqlite3_column_text(stmt, 4))
