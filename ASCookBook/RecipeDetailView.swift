@@ -11,6 +11,8 @@ struct RecipeDetailView: View {
     @Environment(\.modelContext) private var context
     @Bindable var recipe: Recipe
     @State private var isEditing = false
+    @Query private var categories: [Category]
+    @Query private var seasons: [Season]
     
     var body : some View {
         ScrollView {
@@ -19,17 +21,25 @@ struct RecipeDetailView: View {
                     TextField("Name des Rezeptes", text: $recipe.name)
                         .textFieldStyle(.roundedBorder)
                     showImage
+                    editCategory
+                    editSeason
                     editKinds
                     editSpecials
                     editIngredients
+//                    editPlace
+//                    editPortions
                 } else {
                     Text(recipe.name)
                         .font(.title)
                         .padding()
                     showImage
+                    showCategory
+                    showSeason
                     showKinds
                     showSpecials
                     showIngredients
+                    showPlace
+                    showPortions
                 }
             }
             .padding()
@@ -82,12 +92,65 @@ struct RecipeDetailView: View {
         }
     }
     
+    private var showCategory: some View {
+        Section {
+            Text("\(recipe.category?.title ?? "Keine Kategorie")")
+        } header: {
+            Text("Kategorie")
+                .fontWeight(.bold)
+        }
+    }
+    
+    private var showSeason: some View {
+        Section {
+            Text("\(recipe.season?.title ?? "Keine Jahreszeit")")
+        } header: {
+            Text("Jahreszeit")
+                .fontWeight(.bold)
+        }
+    }
+    
     private var showIngredients: some View {
         Section {
             Text(recipe.ingredients)
         } header: {
             Text("Zutaten und Zubereitung")
                 .fontWeight(.bold)
+        }
+    }
+    
+    private var showPortions: some View {
+        Group {
+            let trimmed = recipe.portions.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                Section {
+                    Text(trimmed)
+                } header: {
+                    Text("Portionen")
+                        .fontWeight(.bold)
+                }
+            }
+        }
+    }
+    
+    private var showPlace: some View {
+        Group {
+            let trimmed = recipe.place?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !trimmed.isEmpty {
+                Section {
+                    // Try to create a URL; if scheme is missing (e.g. starts with www.), try https://
+                    if let url = URL(string: trimmed), url.scheme != nil {
+                        Link(trimmed, destination: url)
+                    } else if let url = URL(string: "https://" + trimmed), URL(string: trimmed)?.scheme == nil, url.host != nil {
+                        Link(trimmed, destination: url)
+                    } else {
+                        Text(trimmed)
+                    }
+                } header: {
+                    Text("Quelle")
+                        .fontWeight(.bold)
+                }
+            }
         }
     }
     
@@ -114,6 +177,34 @@ struct RecipeDetailView: View {
                         .fontWeight(.bold)
                 }
             }
+        }
+    }
+    
+    private var editCategory: some View {
+        Section {
+            Picker("Kategorie", selection: $recipe.category) {
+                ForEach(categories, id: \.title) { category in
+                    Text(category.title)
+                        .tag(category)
+                }
+            }
+        } header: {
+            Text("Kategorie")
+                .fontWeight(.bold)
+        }
+    }
+    
+    private var editSeason: some View {
+        Section {
+            Picker("Jahreszeit", selection: $recipe.season) {
+                ForEach(seasons, id: \.title) { season in
+                    Text(season.title)
+                        .tag(season)
+                }
+            }
+        } header: {
+            Text("Jahreszeit")
+                .fontWeight(.bold)
         }
     }
     
