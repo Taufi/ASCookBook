@@ -26,8 +26,10 @@ struct RecipeDetailView: View {
                     editKinds
                     editSpecials
                     editIngredients
-//                    editPlace
-//                    editPortions
+                    TextField("Quelle des Rezepts", text: $recipe.place)
+                        .textFieldStyle(.roundedBorder)
+                    TextField("Portionen", text: $recipe.portions)
+                        .textFieldStyle(.roundedBorder)
                 } else {
                     Text(recipe.name)
                         .font(.title)
@@ -48,13 +50,13 @@ struct RecipeDetailView: View {
         .toolbar {
             if isEditing {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button("Abbrechen") {
                         isEditing = false
                         //KD TODO Rollback
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button("Fertig") {
                         do {
                             try context.save()
                         } catch {
@@ -111,20 +113,23 @@ struct RecipeDetailView: View {
     }
     
     private var showIngredients: some View {
-        Section {
-            Text(recipe.ingredients)
-        } header: {
-            Text("Zutaten und Zubereitung")
-                .fontWeight(.bold)
+        Group {
+            if !recipe.ingredients.isEmpty {
+                Section {
+                    Text(recipe.ingredients)
+                } header: {
+                    Text("Zutaten und Zubereitung")
+                        .fontWeight(.bold)
+                }
+            }
         }
     }
     
     private var showPortions: some View {
         Group {
-            let trimmed = recipe.portions.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
+            if !recipe.portions.isEmpty {
                 Section {
-                    Text(trimmed)
+                    Text(recipe.portions)
                 } header: {
                     Text("Portionen")
                         .fontWeight(.bold)
