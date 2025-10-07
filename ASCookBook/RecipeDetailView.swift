@@ -94,7 +94,7 @@ struct RecipeDetailView: View {
     
     private var showCategory: some View {
         Section {
-            Text("\(recipe.category?.title ?? "Keine Kategorie")")
+            Text(recipe.category.title)
         } header: {
             Text("Kategorie")
                 .fontWeight(.bold)
@@ -103,7 +103,7 @@ struct RecipeDetailView: View {
     
     private var showSeason: some View {
         Section {
-            Text("\(recipe.season?.title ?? "Keine Jahreszeit")")
+            Text(recipe.season.title)
         } header: {
             Text("Jahreszeit")
                 .fontWeight(.bold)
@@ -135,16 +135,16 @@ struct RecipeDetailView: View {
     
     private var showPlace: some View {
         Group {
-            let trimmed = recipe.place?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            if !trimmed.isEmpty {
+            let place = recipe.place
+            if !place.isEmpty {
                 Section {
                     // Try to create a URL; if scheme is missing (e.g. starts with www.), try https://
-                    if let url = URL(string: trimmed), url.scheme != nil {
-                        Link(trimmed, destination: url)
-                    } else if let url = URL(string: "https://" + trimmed), URL(string: trimmed)?.scheme == nil, url.host != nil {
-                        Link(trimmed, destination: url)
+                    if let url = URL(string: place), url.scheme != nil {
+                        Link(place, destination: url)
+                    } else if let url = URL(string: "https://" + place), URL(string: place)?.scheme == nil, url.host != nil {
+                        Link(place, destination: url)
                     } else {
-                        Text(trimmed)
+                        Text(place)
                     }
                 } header: {
                     Text("Quelle")

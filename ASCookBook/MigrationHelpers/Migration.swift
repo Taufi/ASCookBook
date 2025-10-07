@@ -26,7 +26,7 @@ func importLegacyDatabase(dbPath: String, context: ModelContext) {
     for (_, name, place, portions, ingredients, seasonId, categoryId, photoId, kindString, amusegueule, snack, soup) in readRecipes(dbPath: dbPath) {
         let season = seasonMap[seasonId]
         let category = categoryMap[categoryId]
-        let recipe = Recipe(name: name, place: place, ingredients: ingredients, portions: portions, season: season, category: category, photoId: photoId, kinds: [], specials: []) 
+        let recipe = Recipe(name: name, place: place, ingredients: ingredients, portions: portions, season: season ?? Season(title: "Keine Jahreszeit"), category: category ?? Category(title: "Keine Kategorie"), photoId: photoId, kinds: [], specials: [])
         
         if kindString != nil {
             switch kindString! {
