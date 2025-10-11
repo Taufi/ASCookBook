@@ -33,18 +33,18 @@ final class Recipe {
 }
 
 // Different approach than with kind to test both options
-@MainActor extension Recipe {
-    func binding(for special: Special) -> Binding<Bool> {
-        Binding(
-            get: { self.specials.contains(special) },
-            set: { isOn in
-                    if isOn {
-                    self.specials.insert(special)
-                } else {
-                    self.specials.remove(special)
-                }
-            }
-        )
-    }
-}
+//@MainActor extension Recipe {
+//    func binding(for special: Special) -> Binding<Bool> {
+//        Binding(
+//            get: { self.specials.contains(special) },
+//            set: { isOn in
+//                    if isOn {
+//                    self.specials.insert(special)
+//                } else {
+//                    self.specials.remove(special)
+//                }
+//            }
+//        )
+//    }
+//}
 
