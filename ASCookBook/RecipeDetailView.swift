@@ -172,26 +172,21 @@ struct RecipeDetailView: View {
     }
     
     private var editKinds: some View {
-        Section {
-            ForEach(Kind.allCases, id: \.rawValue) { kind in
-                Toggle(kind.displayName, isOn: $recipe.binding(for: kind))
-            }
-        }  header: {
-            Text("Art des Rezeptes")
-                .fontWeight(.bold)
-        }
+        editToggleSection(
+            allCases: Kind.allCases,
+            binding: { $recipe.binding(for: $0) },
+            displayName: { $0.displayName },
+            header: "Art des Rezeptes"
+        )
     }
     
     private var editSpecials: some View {
-        Section {
-            ForEach(Special.allCases, id: \.rawValue) { special in
-                // Different approach than with kind to test both options: recipe and binding $recipe
-                Toggle(special.displayName, isOn: recipe.binding(for: special))
-            }
-        }  header: {
-            Text("Verwendung als...")
-                .fontWeight(.bold)
-        }
+        editToggleSection(
+            allCases: Special.allCases,
+            binding: { $recipe.binding(for: $0) },
+            displayName: { $0.displayName },
+            header: "Verwendung als..."
+        )
     }
     
     private var editIngredients: some View {
@@ -233,6 +228,23 @@ struct RecipeDetailView: View {
                     Text(item.title)
                         .tag(item)
                 }
+            }
+        } header: {
+            Text(header)
+                .fontWeight(.bold)
+        }
+    }
+    
+    /// Generic method to create a toggle-based edit section
+    private func editToggleSection<T>(
+        allCases: [T],
+        binding: @escaping (T) -> Binding<Bool>,
+        displayName: @escaping (T) -> String,
+        header: String
+    ) -> some View {
+        Section {
+            ForEach(allCases.enumerated(), id: \.offset) { index, item in
+                Toggle(displayName(item), isOn: binding(item))
             }
         } header: {
             Text(header)

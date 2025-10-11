@@ -19,5 +19,17 @@ extension Bindable where Value == Recipe {
             }
         )
     }
+    
+    func binding(for special: Special) -> Binding<Bool> {
+        Binding (
+            get: { wrappedValue.specials.contains(special) },
+            set: { isOn in
+                if isOn {
+                    wrappedValue.specials.insert(special)
+                } else {
+                    wrappedValue.specials.remove(special)
+                }
+            }
+        )
+    }
 }
-
