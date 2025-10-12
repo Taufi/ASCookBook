@@ -10,9 +10,14 @@ import SwiftData
 struct RecipeDetailView: View {
     @Environment(\.modelContext) private var context
     @Bindable var recipe: Recipe
-    @State private var isEditing = false
+    @State private var isEditing: Bool
     @Query private var categories: [Category]
     @Query private var seasons: [Season]
+    
+    init(recipe: Recipe, startInEditMode: Bool = false) {
+        self._recipe = Bindable(wrappedValue: recipe)
+        self._isEditing = State(initialValue: startInEditMode)
+    }
     
     var body : some View {
         ScrollView {
