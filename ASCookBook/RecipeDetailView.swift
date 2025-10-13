@@ -10,13 +10,13 @@ import SwiftData
 struct RecipeDetailView: View {
     @Environment(\.modelContext) private var context
     @Bindable var recipe: Recipe
-    @State private var isEditing: Bool
+    @State var isEditing: Bool
     @Query private var categories: [Category]
     @Query private var seasons: [Season]
     
     init(recipe: Recipe, startInEditMode: Bool = false) {
-        self._recipe = Bindable(wrappedValue: recipe)
-        self._isEditing = State(initialValue: startInEditMode)
+        self.recipe = recipe
+        self.isEditing = startInEditMode
     }
     
     var body : some View {
@@ -37,7 +37,8 @@ struct RecipeDetailView: View {
                         .textFieldStyle(.roundedBorder)
                 } else {
                     Text(recipe.name)
-                        .font(.title)
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
                         .padding()
                     showImage
                     showCategory
@@ -51,7 +52,7 @@ struct RecipeDetailView: View {
             }
             .padding()
         }
-        .navigationTitle(recipe.name)
+//        .navigationTitle(recipe.name)
         .toolbar {
             if isEditing {
                 ToolbarItem(placement: .navigationBarLeading) {
