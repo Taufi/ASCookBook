@@ -8,15 +8,29 @@ import SwiftUI
 import SwiftData
 
 struct RecipeDetailView: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Bindable var recipe: Recipe
     @State var isEditing: Bool
+    private let isNew: Bool
     @Query private var categories: [Category]
     @Query private var seasons: [Season]
+    
+    // Store original values for rollback
+    @State private var originalName: String = ""
+    @State private var originalPlace: String = ""
+    @State private var originalIngredients: String = ""
+    @State private var originalPortions: String = ""
+    @State private var originalSeason: Season?
+    @State private var originalCategory: Category?
+    @State private var originalKinds: Kind = Kind(rawValue: 0)
+    @State private var originalSpecials: Special = Special(rawValue: 0)
+    
     
     init(recipe: Recipe, startInEditMode: Bool = false) {
         self.recipe = recipe
         self.isEditing = startInEditMode
+        self.isNew = startInEditMode
     }
     
     var body : some View {
@@ -36,10 +50,10 @@ struct RecipeDetailView: View {
                     TextField("Portionen", text: $recipe.portions)
                         .textFieldStyle(.roundedBorder)
                 } else {
-                    Text(recipe.name)
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .padding()
+//                    Text(recipe.name)
+//                        .font(.largeTitle)
+//                        .fontWeight(.bold)
+//                        .padding()
                     showImage
                     showCategory
                     showSeason
@@ -52,29 +66,25 @@ struct RecipeDetailView: View {
             }
             .padding()
         }
-//        .navigationTitle(recipe.name)
+        .navigationTitle(recipe.name)
+//        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isEditing {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Abbrechen") {
-                        isEditing = false
-                        //KD TODO Rollback
+                        handleCancel()
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fertig") {
-                        do {
-                            try context.save()
-                        } catch {
-                            print("-------> ERROR SAVING CONTEXT")
-                        }
-                        isEditing = false
+                        handleSave()
                     }
                 }
                 
             } else {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Edit") {
+                        saveOriginalState()
                         isEditing = true
                     }
                 }
@@ -256,6 +266,45 @@ struct RecipeDetailView: View {
             Text(header)
                 .fontWeight(.bold)
         }
+    }
+    
+    private func handleSave() {
+        try? context.save()
+//        isEditing = false
+        dismiss()
+    }
+    
+    private func handleCancel() {
+        if isNew {
+            context.delete(recipe)
+            try? context.save()
+        } else {
+            // Restore original values for existing recipes
+            restoreOriginalState()
+        }
+        dismiss()
+    }
+
+    private func saveOriginalState() {
+        originalName = recipe.name
+        originalPlace = recipe.place
+        originalIngredients = recipe.ingredients
+        originalPortions = recipe.portions
+        originalSeason = recipe.season
+        originalCategory = recipe.category
+        originalKinds = recipe.kinds
+        originalSpecials = recipe.specials
+    }
+    
+    private func restoreOriginalState() {
+        recipe.name = originalName
+        recipe.place = originalPlace
+        recipe.ingredients = originalIngredients
+        recipe.portions = originalPortions
+        recipe.season = originalSeason ?? recipe.season
+        recipe.category = originalCategory ?? recipe.category
+        recipe.kinds = originalKinds
+        recipe.specials = originalSpecials
     }
 }
 
