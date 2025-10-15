@@ -15,18 +15,18 @@ final class Recipe {
     var portions: String
     var season: Season
     var category: Category
-    var photoId: Int?
+    @Attribute(.externalStorage) var photo: Data?
     var kinds: Kind
     var specials: Special
     
-    init(name: String, place: String = "", ingredients: String, portions: String, season: Season, category: Category, photoId: Int? = nil, kinds: Kind, specials: Special) {
+    init(name: String, place: String = "", ingredients: String, portions: String, season: Season, category: Category, photo: Data? = nil, kinds: Kind, specials: Special) {
         self.name = name
         self.place = place
         self.ingredients = ingredients
         self.portions = portions
         self.season = season
         self.category = category
-        self.photoId = photoId
+        self.photo = photo
         self.kinds = kinds
         self.specials = specials
     }

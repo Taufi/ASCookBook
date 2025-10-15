@@ -28,8 +28,8 @@ struct ContentView: View {
                 ForEach(filteredRecipes) { recipe in
                     NavigationLink(value: recipe) {
                         HStack(alignment: .top, spacing: 12) {
-                            if let image = imageForRecipe(photoId: recipe.photoId) {
-                                image
+                            if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
+                                Image(uiImage: uiImage)
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                                     .frame(width: 80, height: 80)
@@ -54,7 +54,7 @@ struct ContentView: View {
             }
             .task {
                 if recipes.isEmpty {
-                    if let dbURL = getWritableDatabaseURL() {
+                    if let dbURL = Bundle.main.url(forResource: "CookBook", withExtension: "sqlite") {
                         importLegacyDatabase(dbPath: dbURL.path, context: context)
                     }
                 }
@@ -77,18 +77,6 @@ struct ContentView: View {
         }
     }
     
-    func imageForRecipe(photoId: Int?) -> Image? {
-        guard let photoId = photoId else { return nil }
-        let fileManager = FileManager.default
-        let urls = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-        guard let appSupportURL = urls.first else { return nil }
-        let imageURL = appSupportURL.appendingPathComponent("image\(photoId).jpg")
-        if let uiImage = UIImage(contentsOfFile: imageURL.path) {
-            return Image(uiImage: uiImage)
-        } else {
-            return nil
-        }
-    }
     
     private func addNewRecipe() {
         let newRecipe = Recipe(
@@ -98,7 +86,7 @@ struct ContentView: View {
             portions: "",
             season: Season.fetchOrCreate(title: "immer", in: context),
             category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
-            photoId: nil,
+            photo: nil,
             kinds: Kind(rawValue: 1),
             specials: Special(rawValue: 0),
         )
