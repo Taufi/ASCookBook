@@ -102,6 +102,11 @@ struct RecipeDetailView: View {
             } else if recipe.photo != nil {
                 Text("Bild konnte nicht geladen werden")
                     .padding()
+            } else {
+                Image("Plate")
+                    .resizable()
+                    .scaledToFit()
+                    .padding()
             }
         }
     }
