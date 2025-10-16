@@ -10,7 +10,9 @@ import SQLite3
 func readRecipes(dbPath: String) -> [(Int, String, String, String, String, Int, Int, Data?, String?, Int?, Int?, Int?)] {
     var db: OpaquePointer?
     var results: [(Int, String, String, String, String, Int, Int, Data?, String?, Int?, Int?, Int?)] = []
-    if sqlite3_open(dbPath, &db) == SQLITE_OK {
+    // Use a URI with mode=ro & immutable=1 to avoid WAL/SHM lookup in the app bundle
+    let uri = "file:\(dbPath)?mode=ro&immutable=1"
+    if sqlite3_open_v2(uri, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_URI, nil) == SQLITE_OK {
         let query = """
             SELECT r.Z_PK, r.ZNAME, r.ZORT, r.ZPORTIONEN, r.ZZUTATEN, r.ZJAHRESZEIT, r.ZKATEGORIE, 
                    p.ZREZEPTPHOTO, r.ZART, r.ZAMUSEGUEULE, r.ZSNACK, r.ZSUPPE 
@@ -18,7 +20,7 @@ func readRecipes(dbPath: String) -> [(Int, String, String, String, String, Int, 
             LEFT JOIN ZREZEPTPHOTO p ON r.ZREZEPTPHOTO = p.Z_PK
         """
         var stmt: OpaquePointer?
-        if sqlite3_prepare(db, query, -1, &stmt, nil) == SQLITE_OK {
+        if sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK {
             while sqlite3_step(stmt) == SQLITE_ROW {
                 let id = Int(sqlite3_column_int(stmt, 0))
                 let name = String(cString: sqlite3_column_text(stmt, 1))
@@ -67,7 +69,8 @@ func readRecipes(dbPath: String) -> [(Int, String, String, String, String, Int, 
 func readSeasons(dbPath: String) -> [(Int,String)] {
     var db: OpaquePointer?
     var results: [(Int, String)] = []
-    if sqlite3_open(dbPath, &db) == SQLITE_OK {
+    let uri = "file:\(dbPath)?mode=ro&immutable=1"
+    if sqlite3_open_v2(uri, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_URI, nil) == SQLITE_OK {
         let query = "SELECT Z_PK, ZJAHRESZEIT FROM ZJAHRESZEIT"
         var stmt: OpaquePointer?
         if sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK {
@@ -86,7 +89,8 @@ func readSeasons(dbPath: String) -> [(Int,String)] {
 func readCategories(dbPath: String) -> [(Int,String)] {
     var db: OpaquePointer?
     var results: [(Int, String)] = []
-    if sqlite3_open(dbPath, &db) == SQLITE_OK {
+    let uri = "file:\(dbPath)?mode=ro&immutable=1"
+    if sqlite3_open_v2(uri, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_URI, nil) == SQLITE_OK {
         let query = "SELECT Z_PK, ZKATEGORIE FROM ZKATEGORIE"
         var stmt: OpaquePointer?
         if sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK {
