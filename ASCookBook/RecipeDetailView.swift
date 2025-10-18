@@ -6,6 +6,7 @@
 //
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 struct RecipeDetailView: View {
     @Environment(\.dismiss) private var dismiss
@@ -26,6 +27,8 @@ struct RecipeDetailView: View {
     @State private var originalKinds: Kind = Kind(rawValue: 0)
     @State private var originalSpecials: Special = Special(rawValue: 0)
     
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var selectedImageData: Data?
     
     init(recipe: Recipe, startInEditMode: Bool = false) {
         self.recipe = recipe
@@ -36,10 +39,12 @@ struct RecipeDetailView: View {
     var body : some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                
+                imageSection
+                
                 if isEditing {
                     TextField("Name des Rezeptes", text: $recipe.name)
                         .textFieldStyle(.roundedBorder)
-                    showImage
                     editCategory
                     editSeason
                     editKinds
@@ -50,11 +55,6 @@ struct RecipeDetailView: View {
                     TextField("Portionen", text: $recipe.portions)
                         .textFieldStyle(.roundedBorder)
                 } else {
-//                    Text(recipe.name)
-//                        .font(.largeTitle)
-//                        .fontWeight(.bold)
-//                        .padding()
-                    showImage
                     showCategory
                     showSeason
                     showKinds
@@ -67,46 +67,78 @@ struct RecipeDetailView: View {
             .padding()
         }
         .navigationTitle(recipe.name)
-//        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if isEditing {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Abbrechen") {
-                        handleCancel()
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fertig") {
-                        handleSave()
-                    }
-                }
-                
-            } else {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Edit") {
-                        saveOriginalState()
-                        isEditing = true
+        .navigationBarBackButtonHidden(isEditing)
+        .toolbar { toolBarButtons }
+        .onChange(of: selectedItem) { _, newItem in
+            Task { await loadImage(from: newItem) }
+        }
+    }
+    
+    @ViewBuilder
+    private var imageSection: some View {
+        let image = selectedImageData ?? recipe.photo
+        if isEditing {
+            PhotosPicker(selection: $selectedItem, matching: .images) {
+                if let data = image, let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .cornerRadius(12)
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 200)
+                        Text("Tippen zur Photoauswahl")
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
-        }
-    }
-
-    private var showImage : some View {
-        VStack {
-            if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
+            .buttonStyle(.plain)
+        } else {
+            if let data = recipe.photo, let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
                     .resizable()
-                    .scaledToFit()
-                    .padding()
-            } else if recipe.photo != nil {
-                Text("Bild konnte nicht geladen werden")
-                    .padding()
+                    .scaledToFill()
+                    .cornerRadius(12)
             } else {
                 Image("Plate")
                     .resizable()
                     .scaledToFit()
                     .padding()
+            }
+        }
+    }
+    
+    @ToolbarContentBuilder
+    private var toolBarButtons: some ToolbarContent {
+        if isEditing {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Änderungen verwerfen") {
+                    handleCancel()
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Fertig") {
+                    handleSave()
+                }
+            }
+            
+        } else {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Edit") {
+                    saveOriginalState()
+                    isEditing = true
+                }
+            }
+        }
+    }
+    
+    private func loadImage(from item: PhotosPickerItem?) async {
+        guard let item else { return }
+        if let data = try? await item.loadTransferable(type: Data.self) {
+            await MainActor.run {
+                selectedImageData = data
             }
         }
     }
@@ -217,6 +249,53 @@ struct RecipeDetailView: View {
         }
     }
     
+    private func handleSave() {
+        // Save the selected image to the recipe if one was selected
+        if let imageData = selectedImageData {
+            recipe.photo = imageData
+        }
+        try? context.save()
+        isEditing = false
+//        dismiss()
+    }
+    
+    private func handleCancel() {
+        if isNew {
+            context.delete(recipe)
+            try? context.save()
+        } else {
+            // Restore original values for existing recipes
+            restoreOriginalState()
+        }
+        // Reset the selected image data
+        selectedImageData = nil
+        selectedItem = nil
+        isEditing = false
+//        dismiss()
+    }
+
+    private func saveOriginalState() {
+        originalName = recipe.name
+        originalPlace = recipe.place
+        originalIngredients = recipe.ingredients
+        originalPortions = recipe.portions
+        originalSeason = recipe.season
+        originalCategory = recipe.category
+        originalKinds = recipe.kinds
+        originalSpecials = recipe.specials
+    }
+    
+    private func restoreOriginalState() {
+        recipe.name = originalName
+        recipe.place = originalPlace
+        recipe.ingredients = originalIngredients
+        recipe.portions = originalPortions
+        recipe.season = originalSeason ?? recipe.season
+        recipe.category = originalCategory ?? recipe.category
+        recipe.kinds = originalKinds
+        recipe.specials = originalSpecials
+    }
+    
     // MARK: - Generic Helper Methods
     
     /// Generic method to display a section with optional conditional rendering
@@ -267,45 +346,6 @@ struct RecipeDetailView: View {
             Text(header)
                 .fontWeight(.bold)
         }
-    }
-    
-    private func handleSave() {
-        try? context.save()
-//        isEditing = false
-        dismiss()
-    }
-    
-    private func handleCancel() {
-        if isNew {
-            context.delete(recipe)
-            try? context.save()
-        } else {
-            // Restore original values for existing recipes
-            restoreOriginalState()
-        }
-        dismiss()
-    }
-
-    private func saveOriginalState() {
-        originalName = recipe.name
-        originalPlace = recipe.place
-        originalIngredients = recipe.ingredients
-        originalPortions = recipe.portions
-        originalSeason = recipe.season
-        originalCategory = recipe.category
-        originalKinds = recipe.kinds
-        originalSpecials = recipe.specials
-    }
-    
-    private func restoreOriginalState() {
-        recipe.name = originalName
-        recipe.place = originalPlace
-        recipe.ingredients = originalIngredients
-        recipe.portions = originalPortions
-        recipe.season = originalSeason ?? recipe.season
-        recipe.category = originalCategory ?? recipe.category
-        recipe.kinds = originalKinds
-        recipe.specials = originalSpecials
     }
 }
 
