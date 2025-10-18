@@ -29,6 +29,7 @@ struct RecipeDetailView: View {
     
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
+    @State private var showingCamera = false
     
     init(recipe: Recipe, startInEditMode: Bool = false) {
         self.recipe = recipe
@@ -72,29 +73,55 @@ struct RecipeDetailView: View {
         .onChange(of: selectedItem) { _, newItem in
             Task { await loadImage(from: newItem) }
         }
+        .sheet(isPresented: $showingCamera) {
+            CameraPicker(selectedImageData: $selectedImageData)
+        }
     }
     
     @ViewBuilder
     private var imageSection: some View {
         let image = selectedImageData ?? recipe.photo
         if isEditing {
-            PhotosPicker(selection: $selectedItem, matching: .images) {
+            VStack(spacing: 12) {
+                // Image display area
                 if let data = image, let uiImage = UIImage(data: data) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
+                        .frame(height: 200)
                         .cornerRadius(12)
+                        .clipped()
                 } else {
                     ZStack {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color.gray.opacity(0.3))
                             .frame(height: 200)
-                        Text("Tippen zur Photoauswahl")
+                        Text("Kein Bild ausgewählt")
                             .foregroundStyle(.secondary)
                     }
                 }
+                
+                // Action buttons
+                HStack(spacing: 16) {
+                    PhotosPicker(selection: $selectedItem, matching: .images) {
+                        Label("Aus Galerie", systemImage: "photo.on.rectangle")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    
+                    Button(action: { showingCamera = true }) {
+                        Label("Kamera", systemImage: "camera")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                }
             }
-            .buttonStyle(.plain)
         } else {
             if let data = recipe.photo, let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
