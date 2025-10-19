@@ -88,7 +88,7 @@ struct RecipeDetailView: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
-                        .frame(height: 200)
+//                        .frame(height: 200)
                         .cornerRadius(12)
                         .clipped()
                 } else {
@@ -104,7 +104,7 @@ struct RecipeDetailView: View {
                 // Action buttons
                 HStack(spacing: 16) {
                     PhotosPicker(selection: $selectedItem, matching: .images) {
-                        Label("Aus Galerie", systemImage: "photo.on.rectangle")
+                        Label("Fotoalbum", systemImage: "photo.on.rectangle")
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(Color.blue)
@@ -290,6 +290,7 @@ struct RecipeDetailView: View {
         if isNew {
             context.delete(recipe)
             try? context.save()
+            dismiss()
         } else {
             // Restore original values for existing recipes
             restoreOriginalState()
