@@ -13,6 +13,7 @@ struct ContentView: View {
     @Query(sort: [SortDescriptor(\Recipe.name)]) private var recipes: [Recipe]
     @State private var searchText: String = ""
     @State private var addedRecipe: Recipe?
+    @State private var showingAdvancedSearch = false
     
     var filteredRecipes: [Recipe] {
         if searchText.isEmpty {
@@ -63,8 +64,15 @@ struct ContentView: View {
             .navigationTitle("Rezepte")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: addNewRecipe) {
-                        Label("Add", systemImage: "plus")
+                    Menu {
+                        Button(action: addNewRecipe) {
+                            Label("Neues Rezept", systemImage: "plus")
+                        }
+                        Button(action: { showingAdvancedSearch = true }) {
+                            Label("Erweiterte Suche", systemImage: "magnifyingglass")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
                 }
             }
@@ -73,6 +81,9 @@ struct ContentView: View {
             }
             .navigationDestination(item: $addedRecipe) { recipe in
                 RecipeDetailView(recipe: recipe, startInEditMode: true)
+            }
+            .sheet(isPresented: $showingAdvancedSearch) {
+                AdvancedSearchView(recipes: recipes)
             }
         }
     }
