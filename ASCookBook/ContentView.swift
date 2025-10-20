@@ -71,6 +71,9 @@ struct ContentView: View {
                         Button(action: { showingAdvancedSearch = true }) {
                             Label("Erweiterte Suche", systemImage: "magnifyingglass")
                         }
+                        Button(action: recipeFromPhoto) {
+                            Label("Rezept fotografieren", systemImage: "camera.on.rectangle")
+                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
@@ -88,6 +91,10 @@ struct ContentView: View {
         }
     }
     
+    private func recipeFromPhoto() {
+        
+        
+    }
     
     private func addNewRecipe() {
         let newRecipe = Recipe(
