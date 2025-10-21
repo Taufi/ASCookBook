@@ -46,11 +46,11 @@ struct RecipeDetailView: View {
                 if isEditing {
                     TextField("Name des Rezeptes", text: $recipe.name)
                         .textFieldStyle(.roundedBorder)
+                    editIngredients
                     editCategory
                     editSeason
                     editKinds
                     editSpecials
-                    editIngredients
                     TextField("Quelle des Rezepts", text: $recipe.place)
                         .textFieldStyle(.roundedBorder)
                     TextField("Portionen", text: $recipe.portions)

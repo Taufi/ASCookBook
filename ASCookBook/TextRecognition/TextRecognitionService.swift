@@ -12,54 +12,63 @@ class TextRecognitionService {
     private let apiKey = Constants.openAIKey
     private let session: URLSession
     
-    var recipeResponse: RecipeResponse? = nil
-    
     init(session: URLSession = .shared) {
         self.session = session
     }
 
-    /// Completion handler for text recognition requests.
-    /// Processes the recognized text observations and prints the strings.
-    func recognizeTextHandler(request: VNRequest, error: Error?) {
-        guard let observations =
-                request.results as? [VNRecognizedTextObservation] else {
-            return
-        }
-        let recognizedStrings = observations.compactMap { observation in
-            // Return the string of the top VNRecognizedText instance.
-            return observation.topCandidates(1).first?.string
-        }
-        
-        // Process the recognized strings.
-        let joined = recognizedStrings.joined(separator: "\n")
-        
-        Task { [weak self] in
-            try? await self?.extractRecipe(from: joined)
-        }
-    }
 
-    func extractRecipe(from imageData: Data) {
-        guard let uiImage = UIImage(data: imageData) else { return }
-        guard let cgImage = uiImage.cgImage else { return }
+    func extractRecipe(from imageData: Data) async throws -> RecipeResponse {
+        guard let uiImage = UIImage(data: imageData) else { 
+            throw NSError(domain: "TextRecognitionService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid image data"])
+        }
+        guard let cgImage = uiImage.cgImage else { 
+            throw NSError(domain: "TextRecognitionService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not create CGImage from UIImage"])
+        }
 
         // Create a new image-request handler.
         let requestHandler = VNImageRequestHandler(cgImage: cgImage)
 
-        // Create a new request to recognize text.
-        let request = VNRecognizeTextRequest(completionHandler: recognizeTextHandler)
-
-        do {
-            // Perform the text-recognition request.
-            try requestHandler.perform([request])
-        } catch {
-            print("Unable to perform the requests: \(error).")
+        // Use async/await for Vision framework
+        return try await withCheckedThrowingContinuation { continuation in
+            // Create a new request to recognize text with completion handler
+            let request = VNRecognizeTextRequest { request, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                    continuation.resume(throwing: NSError(domain: "TextRecognitionService", code: 3, userInfo: [NSLocalizedDescriptionKey: "No text observations found"]))
+                    return
+                }
+                
+                let recognizedStrings = observations.compactMap { observation in
+                    return observation.topCandidates(1).first?.string
+                }
+                
+                let joined = recognizedStrings.joined(separator: "\n")
+                
+                Task {
+                    do {
+                        let recipeResponse = try await self.processRecipeText(joined)
+                        continuation.resume(returning: recipeResponse)
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+            
+            do {
+                try requestHandler.perform([request])
+            } catch {
+                continuation.resume(throwing: error)
+            }
         }
     }
     
-    /// Sends the image data plus a prompt asking to extract recipe info.
+    /// Processes the recognized text and sends it to OpenAI for recipe extraction.
     /// Returns a RecipeResponse or throws.
-    //func extractRecipe(from imageData: Data) async throws -> RecipeResponse {
-    func extractRecipe(from recipeString: String) async throws {
+    private func processRecipeText(_ recipeString: String) async throws -> RecipeResponse {
         // Example endpoint — adjust model and URL if using a multimodal / vision model
 //        let url = URL(string: "https://api.openai.com/v1/chat/completions")!
         let url = URL(string: "https://api.openai.com/v1/responses")!
@@ -153,7 +162,6 @@ class TextRecognitionService {
              throw NSError(domain: "OpenAIService", code: 3, userInfo: [ "reason": "Cannot convert content to data" ])
          }
          
-            recipeResponse = try JSONDecoder().decode(RecipeResponse.self, from: jsonData)
-         
+        return try JSONDecoder().decode(RecipeResponse.self, from: jsonData)
     }
 }

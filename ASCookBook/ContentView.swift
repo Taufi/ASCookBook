@@ -104,26 +104,31 @@ struct ContentView: View {
         guard let imageData = recipeImageData else { return }
         let service = TextRecognitionService()
         
-        service.extractRecipe(from: imageData)
-        guard let recipeResponse = service.recipeResponse else { return }
-        
-        let ingredients = recipeResponse.ingredients.joined(separator: "\n")
-        let instructions = ingredients + "\n\n" + recipeResponse.instructions
-        
-        let newRecipe = Recipe(
-            name: recipeResponse.title,
-            place: "",
-            ingredients: instructions,
-            portions: "",
-            season: Season.fetchOrCreate(title: "immer", in: context),
-            category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
-            photo: nil,
-            kinds: Kind(rawValue: 1),
-            specials: Special(rawValue: 0),
-        )
-        context.insert(newRecipe)
-        addedRecipe = newRecipe
-        try? context.save()
+        do {
+
+            let recipeResponse = try await service.extractRecipe(from: imageData)
+
+            let ingredients = recipeResponse.ingredients.joined(separator: "\n")
+            let instructions = ingredients + "\n\n" + recipeResponse.instructions
+            
+            let newRecipe = Recipe(
+                name: recipeResponse.title,
+                place: "",
+                ingredients: instructions,
+                portions: "",
+                season: Season.fetchOrCreate(title: "immer", in: context),
+                category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
+                photo: nil, // Store the original photo data
+                kinds: Kind(rawValue: 1),
+                specials: Special(rawValue: 0),
+            )
+            context.insert(newRecipe)
+            addedRecipe = newRecipe
+            try? context.save()
+        } catch {
+            print("Error extracting recipe from photo: \(error)")
+            // You might want to show an alert to the user here
+        }
     }
     
     private func addNewRecipe() {
