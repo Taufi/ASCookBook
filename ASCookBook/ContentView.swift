@@ -15,6 +15,9 @@ struct ContentView: View {
     @State private var addedRecipe: Recipe?
     @State private var showingAdvancedSearch = false
     
+    @State private var showingCamera = false
+    @State private var recipeImageData: Data?
+    
     var filteredRecipes: [Recipe] {
         if searchText.isEmpty {
             return recipes
@@ -71,7 +74,7 @@ struct ContentView: View {
                         Button(action: { showingAdvancedSearch = true }) {
                             Label("Erweiterte Suche", systemImage: "magnifyingglass")
                         }
-                        Button(action: recipeFromPhoto) {
+                        Button(action: { showingCamera = true }) {
                             Label("Rezept fotografieren", systemImage: "camera.on.rectangle")
                         }
                     } label: {
@@ -88,12 +91,39 @@ struct ContentView: View {
             .sheet(isPresented: $showingAdvancedSearch) {
                 AdvancedSearchView(recipes: recipes)
             }
+            .sheet(isPresented: $showingCamera) {
+                CameraPicker(selectedImageData: $recipeImageData)
+            }
+            .onChange(of: recipeImageData) {
+                Task { await recipeFromPhoto() }
+            }
         }
     }
     
-    private func recipeFromPhoto() {
+    private func recipeFromPhoto() async {
+        guard let imageData = recipeImageData else { return }
+        let service = TextRecognitionService()
         
+        service.extractRecipe(from: imageData)
+        guard let recipeResponse = service.recipeResponse else { return }
         
+        let ingredients = recipeResponse.ingredients.joined(separator: "\n")
+        let instructions = ingredients + "\n\n" + recipeResponse.instructions
+        
+        let newRecipe = Recipe(
+            name: recipeResponse.title,
+            place: "",
+            ingredients: instructions,
+            portions: "",
+            season: Season.fetchOrCreate(title: "immer", in: context),
+            category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
+            photo: nil,
+            kinds: Kind(rawValue: 1),
+            specials: Special(rawValue: 0),
+        )
+        context.insert(newRecipe)
+        addedRecipe = newRecipe
+        try? context.save()
     }
     
     private func addNewRecipe() {
