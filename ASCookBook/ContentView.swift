@@ -18,6 +18,15 @@ struct ContentView: View {
     @State private var showingCamera = false
     @State private var recipeImageData: Data?
     
+    // Progress tracking for recipe processing
+    @State private var isProcessingRecipe = false
+    @State private var processingProgress: Double = 0.0
+    @State private var processingMessage = ""
+    
+    // Error handling
+    @State private var showingError = false
+    @State private var errorMessage = ""
+    
     var filteredRecipes: [Recipe] {
         if searchText.isEmpty {
             return recipes
@@ -28,33 +37,52 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(filteredRecipes) { recipe in
-                    NavigationLink(value: recipe) {
-                        HStack(alignment: .top, spacing: 12) {
-                            if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            } else  {
-                                Image("Plate")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            VStack(alignment: .leading) {
-                                Text(recipe.name).bold()
-                                Text(recipe.category.title)
-                                    .font(.subheadline).foregroundStyle(.secondary)
-                                Text(recipe.kinds.title)
+            VStack {
+                if isProcessingRecipe {
+                    VStack(spacing: 16) {
+                        ProgressView(value: processingProgress, total: 1.0)
+                            .progressViewStyle(LinearProgressViewStyle())
+                            .frame(maxWidth: 200)
+                        
+                        Text(processingMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                }
+                
+                List {
+                    ForEach(filteredRecipes) { recipe in
+                        NavigationLink(value: recipe) {
+                            HStack(alignment: .top, spacing: 12) {
+                                if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                } else  {
+                                    Image("Plate")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                                VStack(alignment: .leading) {
+                                    Text(recipe.name).bold()
+                                    Text(recipe.category.title)
+                                        .font(.subheadline).foregroundStyle(.secondary)
+                                    Text(recipe.kinds.title)
+                                }
                             }
                         }
                     }
+                    .onDelete(perform: deleteRecipes)
                 }
-                .onDelete(perform: deleteRecipes)
             }
             .task {
                 if recipes.isEmpty {
@@ -97,19 +125,49 @@ struct ContentView: View {
             .onChange(of: recipeImageData) {
                 Task { await recipeFromPhoto() }
             }
+            .alert("Fehler beim Verarbeiten", isPresented: $showingError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
     
     private func recipeFromPhoto() async {
         guard let imageData = recipeImageData else { return }
+        
+        // Start processing
+        await MainActor.run {
+            isProcessingRecipe = true
+            processingProgress = 0.0
+            processingMessage = "Bild wird analysiert..."
+        }
+        
         let service = TextRecognitionService()
         
         do {
-
+            // Update progress for text recognition
+            await MainActor.run {
+                processingProgress = 0.3
+                processingMessage = "Text wird erkannt..."
+            }
+            
             let recipeResponse = try await service.extractRecipe(from: imageData)
+            
+            // Update progress for recipe processing
+            await MainActor.run {
+                processingProgress = 0.7
+                processingMessage = "Rezept wird verarbeitet..."
+            }
 
             let ingredients = recipeResponse.ingredients.joined(separator: "\n")
             let instructions = ingredients + "\n\n" + recipeResponse.instructions
+            
+            // Update progress for saving
+            await MainActor.run {
+                processingProgress = 0.9
+                processingMessage = "Rezept wird gespeichert..."
+            }
             
             let newRecipe = Recipe(
                 name: recipeResponse.title,
@@ -118,16 +176,62 @@ struct ContentView: View {
                 portions: "",
                 season: Season.fetchOrCreate(title: "immer", in: context),
                 category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
-                photo: nil, // Store the original photo data
+                photo: imageData,
                 kinds: Kind(rawValue: 1),
                 specials: Special(rawValue: 0),
             )
             context.insert(newRecipe)
             addedRecipe = newRecipe
             try? context.save()
+            
+            // Complete processing
+            await MainActor.run {
+                processingProgress = 1.0
+                processingMessage = "Fertig!"
+            }
+            
+            // Hide progress after a short delay
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            await MainActor.run {
+                isProcessingRecipe = false
+                processingProgress = 0.0
+                processingMessage = ""
+            }
+            
         } catch {
             print("Error extracting recipe from photo: \(error)")
-            // You might want to show an alert to the user here
+            
+            // Reset progress state on error
+            await MainActor.run {
+                isProcessingRecipe = false
+                processingProgress = 0.0
+                processingMessage = ""
+                
+                // Show user-friendly error message
+                if let nsError = error as NSError? {
+                    switch nsError.domain {
+                    case "TextRecognitionService":
+                        switch nsError.code {
+                        case 1:
+                            errorMessage = "Das Bild konnte nicht verarbeitet werden. Bitte versuchen Sie es mit einem anderen Foto."
+                        case 2:
+                            errorMessage = "Das Bildformat wird nicht unterstützt. Bitte verwenden Sie ein anderes Foto."
+                        case 3:
+                            errorMessage = "Kein Text im Bild gefunden. Bitte fotografieren Sie ein Rezept mit lesbarem Text."
+                        default:
+                            errorMessage = "Fehler bei der Texterkennung: \(nsError.localizedDescription)"
+                        }
+                    case "OpenAIService":
+                        errorMessage = "Fehler beim Verarbeiten des Rezepts. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
+                    default:
+                        errorMessage = "Ein unbekannter Fehler ist aufgetreten: \(nsError.localizedDescription)"
+                    }
+                } else {
+                    errorMessage = "Ein Fehler ist aufgetreten: \(error.localizedDescription)"
+                }
+                
+                showingError = true
+            }
         }
     }
     
@@ -151,7 +255,7 @@ struct ContentView: View {
     //KD TODO Error: deletes wrong recipes when in search mode
     private func deleteRecipes(at offsets: IndexSet) {
         for index in offsets {
-            context.delete(recipes[index])
+            context.delete(filteredRecipes[index])
         }
     }
     

@@ -288,6 +288,7 @@ struct RecipeDetailView: View {
     
     private func handleCancel() {
         if isNew {
+            recipe.photo = nil //app will crash if photo is not nil
             context.delete(recipe)
             try? context.save()
             dismiss()
