@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var showingAdvancedSearch = false
     
     @State private var showingCamera = false
+    @State private var showingPhotoLibrary = false
     @State private var recipeImageData: Data?
     
     // Progress tracking for recipe processing
@@ -105,6 +106,9 @@ struct ContentView: View {
                         Button(action: { showingCamera = true }) {
                             Label("Rezept fotografieren", systemImage: "camera.on.rectangle")
                         }
+                        Button(action: { showingPhotoLibrary = true }) {
+                            Label("Rezeptfoto aus Galerie", systemImage: "photo.on.rectangle")
+                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
@@ -121,6 +125,9 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingCamera) {
                 CameraPicker(selectedImageData: $recipeImageData)
+            }
+            .sheet(isPresented: $showingPhotoLibrary) {
+                PhotoLibraryPicker(selectedImageData: $recipeImageData)
             }
             .onChange(of: recipeImageData) {
                 Task { await recipeFromPhoto() }
