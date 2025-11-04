@@ -69,8 +69,6 @@ class TextRecognitionService {
     /// Processes the recognized text and sends it to OpenAI for recipe extraction.
     /// Returns a RecipeResponse or throws.
     private func processRecipeText(_ recipeString: String) async throws -> RecipeResponse {
-        // Example endpoint — adjust model and URL if using a multimodal / vision model
-//        let url = URL(string: "https://api.openai.com/v1/chat/completions")!
         let url = URL(string: "https://api.openai.com/v1/responses")!
         
         var request = URLRequest(url: url)
@@ -79,11 +77,17 @@ class TextRecognitionService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         //Please extract the recipe in German language in JSON format with keys: \"title\", \"ingredients\", \"instructions\".
+//        let message = """
+//            You are a helpful assistant that extracts recipe details from a text.
+//            The following text is extracted from a recipe book. It contains ingredients and instructions for preparing a dish and may be some more text. The ingredients and instructions may be mixed up. 
+//            Please extract the recipe and the ingredients in German language. Give it a title and headlines for "Zutaten" and "Zubereitung".
+//            Only use the terms from the text; do not add any new ones. All content directly related to the preparation, e.g., the number of servings or headings in the ingredient list, should be retained. Please combine words that are separated into one word. Here is the text:
+//            \(recipeString)
+//            """
         let message = """
-            You are a helpful assistant that extracts recipe details from a text.
-            The following text is extracted from a recipe book. It contains ingredients and instructions for preparing a dish and may be some more text. The ingredients and instructions may be mixed up. 
-            Please extract the recipe in German language. Give it a title and headlines for "Zutaten" and "Zubereitung".
-            Only use the terms from the text; do not add any new ones. All content directly related to the preparation, e.g., the number of servings or headings in the ingredient list, should be retained. Please combine words that are separated into one word. Here is the text:
+            Du bist ein hilfreicher Assistent, der Rezepte aus Texten extrahiert. Der folgende Text ist über Texterkennung aus dem Foto aus einem Rezeptbuch generiert. Er enthält Zutaten und die Anleitung zur Zubereitung einer Mahlzeit und evtl. zusätzlichen Text. Die Zutaten und die Anleitungen können vermischt sein. Bitte extrahiere das eigentliche Rezept aus dem Text. Gib ihm einen Titel und Überschriften für Zutaten und Zubereitungen. Wenn Inhalte sich direkt auf das Rezept beziehen, nimm sie auf. Wichtig sind z.B. die Anzahl der Portionen. Auch Überschriften in den Zutaten oder der Zubereitungsanweisung sollen erhalten bleiben. Verwende nur die Inhalte des Textes. Füge nichts hinzu, was nicht im Text steht. Sollten Worte getrennt sein, füge sie zusammen. 
+            Wichtig: Unabhängig davon, in welcher Sprache der Text verfasst ist, gib das Rezept (Zutaten und Zubereitung) immer in Deutscher Sprache aus. 
+            Hier ist der Text:
             \(recipeString)
             """
         
@@ -103,10 +107,15 @@ class TextRecognitionService {
                 ],
                 "instructions": [
                     "type": "string",
-                    "description": "Step-by-step cooking instructions"
+//                    "description": "Step-by-step cooking instructions"
+                    "description": "Cooking instructions"
+                ],
+                "servings": [
+                    "type": "string",
+                    "description": "Number of servings the recipe makes"
                 ]
             ],
-            "required": ["title", "ingredients", "instructions"],
+            "required": ["title", "ingredients", "instructions", "servings"],
             "additionalProperties": false
         ]
         

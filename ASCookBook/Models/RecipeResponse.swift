@@ -10,4 +10,5 @@ struct RecipeResponse: Decodable {
     let title: String
     let ingredients: [String]
     let instructions: String
+    let servings: String?
 }

@@ -167,8 +167,11 @@ struct ContentView: View {
                 processingMessage = "Rezept wird verarbeitet..."
             }
 
-            let ingredients = recipeResponse.ingredients.joined(separator: "\n")
-            let instructions = ingredients + "\n\n" + recipeResponse.instructions
+            let servingsLine = recipeResponse.servings.map { "\($0)" }
+            let ingredientsBlock = recipeResponse.ingredients.joined(separator: "\n")
+            let instructions = [servingsLine, ingredientsBlock, recipeResponse.instructions]
+                .compactMap { $0 }
+                .joined(separator: "\n\n")
             
             // Update progress for saving
             await MainActor.run {
@@ -229,7 +232,7 @@ struct ContentView: View {
                             errorMessage = "Fehler bei der Texterkennung: \(nsError.localizedDescription)"
                         }
                     case "OpenAIService":
-                        errorMessage = "Fehler beim Verarbeiten des Rezepts. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
+                        errorMessage = "Fehler beim Verarbeiten des Rezepts. Code: \(nsError.code). Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
                     default:
                         errorMessage = "Ein unbekannter Fehler ist aufgetreten: \(nsError.localizedDescription)"
                     }
