@@ -12,24 +12,76 @@ struct AdvancedSearchView: View {
     @Environment(\.dismiss) private var dismiss
     let recipes: [Recipe]
     
+    @Query private var categories: [Category]
+    @Query private var seasons: [Season]
+    
+    // Ingredient search
     @State private var ingredient1: String = ""
     @State private var ingredient2: String = ""
     @State private var ingredient3: String = ""
+    
+    // Filter criteria
+    @State private var selectedCategory: Category?
+    @State private var selectedSeason: Season?
+    @State private var selectedKinds: Kind = Kind(rawValue: 0)
+    @State private var selectedSpecials: Special = Special(rawValue: 0)
     
     private var allIngredients: [String] {
         [ingredient1, ingredient2, ingredient3].filter { !$0.isEmpty }
     }
     
+    private var hasActiveFilters: Bool {
+        !allIngredients.isEmpty ||
+        selectedCategory != nil ||
+        selectedSeason != nil ||
+        !selectedKinds.isEmpty ||
+        !selectedSpecials.isEmpty
+    }
+    
     private var filteredRecipes: [Recipe] {
-        if allIngredients.isEmpty {
-            return recipes
-        }
-        
         return recipes.filter { recipe in
-            let ingredients = recipe.ingredients.lowercased()
-            return allIngredients.allSatisfy { ingredient in
-                ingredients.localizedCaseInsensitiveContains(ingredient)
-            }
+            // Filter by ingredients
+            let matchesIngredients: Bool = {
+                if allIngredients.isEmpty {
+                    return true
+                }
+                let ingredients = recipe.ingredients.lowercased()
+                return allIngredients.allSatisfy { ingredient in
+                    ingredients.localizedCaseInsensitiveContains(ingredient)
+                }
+            }()
+            
+            // Filter by category
+            let matchesCategory: Bool = {
+                guard let selectedCategory = selectedCategory else { return true }
+                return recipe.category.title == selectedCategory.title
+            }()
+            
+            // Filter by season
+            let matchesSeason: Bool = {
+                guard let selectedSeason = selectedSeason else { return true }
+                return recipe.season.title == selectedSeason.title
+            }()
+            
+            // Filter by kinds
+            let matchesKinds: Bool = {
+                if selectedKinds.isEmpty {
+                    return true
+                }
+                return (recipe.kinds.intersection(selectedKinds) == selectedKinds) // if all selected kinds must match
+//                return !recipe.kinds.intersection(selectedKinds).isEmpty // recipe must contain at least one selected kind
+            }()
+            
+            // Filter by specials
+            let matchesSpecials: Bool = {
+                if selectedSpecials.isEmpty {
+                    return true
+                }
+                return (recipe.specials.intersection(selectedSpecials) == selectedSpecials) // if all selected specials must match
+//                return !recipe.specials.intersection(selectedSpecials).isEmpty //recipe must contain at least one selected special
+            }()
+            
+            return matchesIngredients && matchesCategory && matchesSeason && matchesKinds && matchesSpecials
         }
     }
     
@@ -37,50 +89,90 @@ struct AdvancedSearchView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Search form
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Erweiterte Suche")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .padding(.horizontal)
-                    
-                    Text("Geben Sie bis zu 3 Zutaten ein, um Rezepte zu finden, die alle diese Zutaten enthalten.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
-                    
-                    VStack(spacing: 12) {
-                        TextField("Zutat 1", text: $ingredient1)
-                            .textFieldStyle(.roundedBorder)
-                        
-                        TextField("Zutat 2", text: $ingredient2)
-                            .textFieldStyle(.roundedBorder)
-                        
-                        TextField("Zutat 3", text: $ingredient3)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    .padding(.horizontal)
-                    
-                    HStack {
-                        Button("Löschen") {
-                            clearSearch()
+                Form {
+                    Section {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Geben Sie bis zu 3 Zutaten ein, um Rezepte zu finden, die alle diese Zutaten enthalten.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            
+                            TextField("Zutat 1", text: $ingredient1)
+                                .textFieldStyle(.roundedBorder)
+                            
+                            TextField("Zutat 2", text: $ingredient2)
+                                .textFieldStyle(.roundedBorder)
+                            
+                            TextField("Zutat 3", text: $ingredient3)
+                                .textFieldStyle(.roundedBorder)
                         }
-                        .foregroundColor(.blue)
-                        
-                        Spacer()
-                        
-                        Text("\(filteredRecipes.count) Rezepte gefunden")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    } header: {
+                        Text("Zutaten")
+                            .fontWeight(.bold)
                     }
-                    .padding(.horizontal)
+                    
+                    Section {
+                        Picker("Kategorie", selection: $selectedCategory) {
+                            Text("Alle").tag(nil as Category?)
+                            ForEach(categories, id: \.title) { category in
+                                Text(category.title).tag(category as Category?)
+                            }
+                        }
+                    } header: {
+                        Text("Kategorie")
+                            .fontWeight(.bold)
+                    }
+                    
+                    Section {
+                        Picker("Jahreszeit", selection: $selectedSeason) {
+                            Text("Alle").tag(nil as Season?)
+                            ForEach(seasons, id: \.title) { season in
+                                Text(season.title).tag(season as Season?)
+                            }
+                        }
+                    } header: {
+                        Text("Jahreszeit")
+                            .fontWeight(.bold)
+                    }
+                    
+                    Section {
+                        ForEach(Kind.allCases, id: \.rawValue) { kind in
+                            Toggle(kind.displayName, isOn: binding(for: kind))
+                        }
+                    } header: {
+                        Text("Art des Rezeptes")
+                            .fontWeight(.bold)
+                    }
+                    
+                    Section {
+                        ForEach(Special.allCases, id: \.rawValue) { special in
+                            Toggle(special.displayName, isOn: binding(for: special))
+                        }
+                    } header: {
+                        Text("Verwendung als...")
+                            .fontWeight(.bold)
+                    }
+                    
+                    Section {
+                        HStack {
+                            Button("Alle Filter löschen") {
+                                clearSearch()
+                            }
+                            .foregroundColor(.blue)
+                            
+                            Spacer()
+                            
+                            Text("\(filteredRecipes.count) Rezepte gefunden")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
-                .padding(.vertical)
-                .background(Color(.systemGroupedBackground))
+                .formStyle(.grouped)
                 
                 Divider()
                 
                 // Results
-                if filteredRecipes.isEmpty && !allIngredients.isEmpty {
+                if filteredRecipes.isEmpty && hasActiveFilters {
                     VStack(spacing: 16) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 50))
@@ -90,7 +182,7 @@ struct AdvancedSearchView: View {
                             .font(.headline)
                             .foregroundStyle(.secondary)
                         
-                        Text("Versuchen Sie andere Zutaten oder weniger Zutaten.")
+                        Text("Versuchen Sie andere Suchkriterien oder weniger Filter.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -143,10 +235,40 @@ struct AdvancedSearchView: View {
         }
     }
     
+    private func binding(for kind: Kind) -> Binding<Bool> {
+        Binding(
+            get: { selectedKinds.contains(kind) },
+            set: { isOn in
+                if isOn {
+                    selectedKinds.insert(kind)
+                } else {
+                    selectedKinds.remove(kind)
+                }
+            }
+        )
+    }
+    
+    private func binding(for special: Special) -> Binding<Bool> {
+        Binding(
+            get: { selectedSpecials.contains(special) },
+            set: { isOn in
+                if isOn {
+                    selectedSpecials.insert(special)
+                } else {
+                    selectedSpecials.remove(special)
+                }
+            }
+        )
+    }
+    
     private func clearSearch() {
         ingredient1 = ""
         ingredient2 = ""
         ingredient3 = ""
+        selectedCategory = nil
+        selectedSeason = nil
+        selectedKinds = Kind(rawValue: 0)
+        selectedSpecials = Special(rawValue: 0)
     }
 }
 
