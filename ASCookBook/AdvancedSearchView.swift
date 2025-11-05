@@ -68,7 +68,7 @@ struct AdvancedSearchView: View {
                 if selectedKinds.isEmpty {
                     return true
                 }
-                return (recipe.kinds.intersection(selectedKinds) == selectedKinds) // if all selected kinds must match
+                return selectedKinds.isSubset(of: recipe.kinds) // if all selected kinds must match
 //                return !recipe.kinds.intersection(selectedKinds).isEmpty // recipe must contain at least one selected kind
             }()
             
@@ -77,7 +77,7 @@ struct AdvancedSearchView: View {
                 if selectedSpecials.isEmpty {
                     return true
                 }
-                return (recipe.specials.intersection(selectedSpecials) == selectedSpecials) // if all selected specials must match
+                return selectedSpecials.isSubset(of: recipe.specials) // if all selected specials must match
 //                return !recipe.specials.intersection(selectedSpecials).isEmpty //recipe must contain at least one selected special
             }()
             
