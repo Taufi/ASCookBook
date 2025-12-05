@@ -115,7 +115,7 @@ struct ContentView: View {
                 }
             }
             .navigationDestination(for: Recipe.self) { recipe in
-                RecipeDetailView(recipe: recipe, startInEditMode: recipe == addedRecipe)
+                RecipeDetailView(recipe: recipe, startInEditMode: false)
             }
             .navigationDestination(item: $addedRecipe) { recipe in
                 RecipeDetailView(recipe: recipe, startInEditMode: true)
