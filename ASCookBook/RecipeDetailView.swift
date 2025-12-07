@@ -26,6 +26,7 @@ struct RecipeDetailView: View {
     @State private var originalCategory: Category?
     @State private var originalKinds: Kind = Kind(rawValue: 0)
     @State private var originalSpecials: Special = Special(rawValue: 0)
+    @State private var originalPhoto: Data?
     
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
@@ -326,6 +327,7 @@ struct RecipeDetailView: View {
         originalCategory = recipe.category
         originalKinds = recipe.kinds
         originalSpecials = recipe.specials
+        originalPhoto = recipe.photo
     }
     
     private func restoreOriginalState() {
@@ -337,6 +339,7 @@ struct RecipeDetailView: View {
         recipe.category = originalCategory ?? recipe.category
         recipe.kinds = originalKinds
         recipe.specials = originalSpecials
+        recipe.photo = originalPhoto
     }
     
     // MARK: - Generic Helper Methods
