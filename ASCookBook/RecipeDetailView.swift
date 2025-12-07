@@ -85,12 +85,26 @@ struct RecipeDetailView: View {
             VStack(spacing: 12) {
                 // Image display area
                 if let data = image, let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
 //                        .frame(height: 200)
-                        .cornerRadius(12)
-                        .clipped()
+                            .cornerRadius(12)
+                            .clipped()
+                        
+                        Button(action: {
+                            selectedImageData = nil
+                            recipe.photo = nil
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .background(Color.black.opacity(0.6))
+                                .clipShape(Circle())
+                                .padding(8)
+                        }
+                    }
                 } else {
                     ZStack {
                         RoundedRectangle(cornerRadius: 12)
