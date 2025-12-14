@@ -13,7 +13,7 @@ struct ASCookBookApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .modelContainer(for: [Recipe.self])
+                .modelContainer(for: [Recipe.self, Category.self, Season.self])
         }
     }
 }

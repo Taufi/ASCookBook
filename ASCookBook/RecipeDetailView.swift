@@ -32,6 +32,12 @@ struct RecipeDetailView: View {
     @State private var selectedImageData: Data?
     @State private var showingCamera = false
     
+    // State for adding new categories and seasons
+    @State private var showingAddCategoryAlert = false
+    @State private var showingAddSeasonAlert = false
+    @State private var newCategoryTitle = ""
+    @State private var newSeasonTitle = ""
+    
     init(recipe: Recipe, startInEditMode: Bool = false) {
         self.recipe = recipe
         self.isEditing = startInEditMode
@@ -76,6 +82,68 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $showingCamera) {
             CameraPicker(selectedImageData: $selectedImageData)
+        }
+        .sheet(isPresented: $showingAddCategoryAlert) {
+            NavigationStack {
+                Form {
+                    Section {
+                        TextField("Kategoriename", text: $newCategoryTitle)
+                    } header: {
+                        Text("Neue Kategorie")
+                    } footer: {
+                        Text("Geben Sie den Namen der neuen Kategorie ein.")
+                    }
+                }
+                .navigationTitle("Kategorie hinzufügen")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Abbrechen") {
+                            newCategoryTitle = ""
+                            showingAddCategoryAlert = false
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Hinzufügen") {
+                            addNewCategory()
+                            showingAddCategoryAlert = false
+                        }
+                        .disabled(newCategoryTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+            }
+            .presentationDetents([.height(200)])
+        }
+        .sheet(isPresented: $showingAddSeasonAlert) {
+            NavigationStack {
+                Form {
+                    Section {
+                        TextField("Jahreszeitname", text: $newSeasonTitle)
+                    } header: {
+                        Text("Neue Jahreszeit")
+                    } footer: {
+                        Text("Geben Sie den Namen der neuen Jahreszeit ein.")
+                    }
+                }
+                .navigationTitle("Jahreszeit hinzufügen")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Abbrechen") {
+                            newSeasonTitle = ""
+                            showingAddSeasonAlert = false
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Hinzufügen") {
+                            addNewSeason()
+                            showingAddSeasonAlert = false
+                        }
+                        .disabled(newSeasonTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+            }
+            .presentationDetents([.height(200)])
         }
     }
     
@@ -247,19 +315,49 @@ struct RecipeDetailView: View {
     }
     
     private var editCategory: some View {
-        editPickerSection(
-            selection: $recipe.category,
-            items: categories,
-            header: "Kategorie"
-        )
+        Section {
+            Picker("Kategorie", selection: $recipe.category) {
+                ForEach(categories, id: \.title) { category in
+                    Text(category.title)
+                        .tag(category)
+                }
+            }
+            Button(action: {
+                showingAddCategoryAlert = true
+            }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Neue Kategorie hinzufügen")
+                }
+                .foregroundColor(.blue)
+            }
+        } header: {
+            Text("Kategorie")
+                .fontWeight(.bold)
+        }
     }
     
     private var editSeason: some View {
-        editPickerSection(
-            selection: $recipe.season,
-            items: seasons,
-            header: "Jahreszeit"
-        )
+        Section {
+            Picker("Jahreszeit", selection: $recipe.season) {
+                ForEach(seasons, id: \.title) { season in
+                    Text(season.title)
+                        .tag(season)
+                }
+            }
+            Button(action: {
+                showingAddSeasonAlert = true
+            }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Neue Jahreszeit hinzufügen")
+                }
+                .foregroundColor(.blue)
+            }
+        } header: {
+            Text("Jahreszeit")
+                .fontWeight(.bold)
+        }
     }
     
     private var editKinds: some View {
@@ -342,6 +440,22 @@ struct RecipeDetailView: View {
         recipe.photo = originalPhoto
     }
     
+    private func addNewCategory() {
+        guard !newCategoryTitle.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let newCategory = Category.fetchOrCreate(title: newCategoryTitle.trimmingCharacters(in: .whitespaces), in: context)
+        recipe.category = newCategory
+        try? context.save()
+        newCategoryTitle = ""
+    }
+    
+    private func addNewSeason() {
+        guard !newSeasonTitle.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let newSeason = Season.fetchOrCreate(title: newSeasonTitle.trimmingCharacters(in: .whitespaces), in: context)
+        recipe.season = newSeason
+        try? context.save()
+        newSeasonTitle = ""
+    }
+    
     // MARK: - Generic Helper Methods
     
     /// Generic method to display a section with optional conditional rendering
@@ -359,23 +473,23 @@ struct RecipeDetailView: View {
     }
     
     /// Generic method to create a picker-based edit section
-    private func editPickerSection<T: TitledModel>(
-        selection: Binding<T>,
-        items: [T],
-        header: String
-    ) -> some View {
-        Section {
-            Picker(header, selection: selection) {
-                ForEach(items, id: \.title) { item in
-                    Text(item.title)
-                        .tag(item)
-                }
-            }
-        } header: {
-            Text(header)
-                .fontWeight(.bold)
-        }
-    }
+//    private func editPickerSection<T: TitledModel>(
+//        selection: Binding<T>,
+//        items: [T],
+//        header: String
+//    ) -> some View {
+//        Section {
+//            Picker(header, selection: selection) {
+//                ForEach(items, id: \.title) { item in
+//                    Text(item.title)
+//                        .tag(item)
+//                }
+//            }
+//        } header: {
+//            Text(header)
+//                .fontWeight(.bold)
+//        }
+//    }
     
     /// Generic method to create a toggle-based edit section
     private func editToggleSection<T>(
