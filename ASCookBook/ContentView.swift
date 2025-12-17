@@ -150,7 +150,10 @@ struct ContentView: View {
             processingMessage = "Bild wird analysiert..."
         }
         
-        let service = TextRecognitionService()
+        guard let uiImage = UIImage(data: imageData) else { return }
+        
+        let dropBoxService = DropboxService()
+        guard let imageUrl = try? await dropBoxService.uploadAndGetTemporaryLink(image: uiImage) else { return }
         
         do {
             // Update progress for text recognition
@@ -159,7 +162,8 @@ struct ContentView: View {
                 processingMessage = "Text wird erkannt..."
             }
             
-            let recipeResponse = try await service.extractRecipe(from: imageData)
+            let service = TextRecognitionService()
+            let recipeResponse = try await service.extractRecipe(from: imageUrl)
             
             // Update progress for recipe processing
             await MainActor.run {
