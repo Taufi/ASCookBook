@@ -150,7 +150,8 @@ struct ContentView: View {
             processingMessage = "Bild wird analysiert..."
         }
         
-        let service = TextRecognitionService()
+        let s3Service = S3Service()
+        guard let imageUrl = try? await s3Service.uploadAndGetTemporaryLink(imageData: imageData) else { return }
         
         do {
             // Update progress for text recognition
@@ -159,7 +160,8 @@ struct ContentView: View {
                 processingMessage = "Text wird erkannt..."
             }
             
-            let recipeResponse = try await service.extractRecipe(from: imageData)
+            let service = TextRecognitionService()
+            let recipeResponse = try await service.extractRecipe(from: imageUrl)
             
             // Update progress for recipe processing
             await MainActor.run {
