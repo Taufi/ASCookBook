@@ -7,11 +7,8 @@
 
 import Foundation
 import AWSS3
-import AWSSDKIdentity
 import SmithyIdentity
 import Smithy
-import ClientRuntime
-import AWSClientRuntime
 
 class S3Service {
   
@@ -54,7 +51,7 @@ class S3Service {
         guard let url = presignedURL else {
             throw NSError(domain: "S3Service", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to generate presigned URL"])
         }
-        print("------> URL: \(url.absoluteString)")
+
         return url
     }
 }
