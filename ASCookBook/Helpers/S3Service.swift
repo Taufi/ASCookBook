@@ -45,15 +45,16 @@ class S3Service {
             key: "recipe.jpg"
         )
         
-        let presignedRequest = try await s3Client.presignedRequestForGetObject(
-            input: getInput,
+        // Generate presigned URL using the same config
+        let presignedURL = try await getInput.presignURL(
+            config: config,
             expiration: TimeInterval(300)
         )
         
-        guard let url = presignedRequest.url else {
+        guard let url = presignedURL else {
             throw NSError(domain: "S3Service", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to generate presigned URL"])
         }
-        
+        print("------> URL: \(url.absoluteString)")
         return url
     }
 }
