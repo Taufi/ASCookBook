@@ -53,6 +53,8 @@ struct RecipeDetailView: View {
                 if isEditing {
                     TextField("Name des Rezeptes", text: $recipe.name)
                         .textFieldStyle(.roundedBorder)
+                    TextField("Portionen", text: $recipe.portions)
+                        .textFieldStyle(.roundedBorder)
                     editIngredients
                     editCategory
                     editSeason
@@ -60,16 +62,14 @@ struct RecipeDetailView: View {
                     editSpecials
                     TextField("Quelle des Rezepts", text: $recipe.place)
                         .textFieldStyle(.roundedBorder)
-                    TextField("Portionen", text: $recipe.portions)
-                        .textFieldStyle(.roundedBorder)
                 } else {
+                    showPortions
+                    showIngredients
                     showCategory
                     showSeason
                     showKinds
                     showSpecials
-                    showIngredients
                     showPlace
-                    showPortions
                 }
             }
             .padding()

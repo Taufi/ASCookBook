@@ -167,9 +167,8 @@ struct ContentView: View {
                 processingMessage = "Rezept wird verarbeitet..."
             }
 
-            let servingsLine = recipeResponse.servings.map { "\($0)" }
             let ingredientsBlock = recipeResponse.ingredients.joined(separator: "\n")
-            let instructions = [servingsLine, ingredientsBlock, recipeResponse.instructions]
+            let instructions = [ingredientsBlock, recipeResponse.instructions]
                 .compactMap { $0 }
                 .joined(separator: "\n\n")
             
@@ -183,7 +182,7 @@ struct ContentView: View {
                 name: recipeResponse.title,
                 place: "",
                 ingredients: instructions,
-                portions: "",
+                portions: recipeResponse.servings ?? "",
                 season: Season.fetchOrCreate(title: "immer", in: context),
                 category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
                 photo: imageData,
@@ -268,7 +267,6 @@ struct ContentView: View {
             context.delete(filteredRecipes[index])
         }
     }
-    
 }
 
 #Preview {
