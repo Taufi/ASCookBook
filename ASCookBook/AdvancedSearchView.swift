@@ -12,8 +12,8 @@ struct AdvancedSearchView: View {
     @Environment(\.dismiss) private var dismiss
     let recipes: [Recipe]
     
-    @Query private var categories: [Category]
-    @Query private var seasons: [Season]
+    @Query(sort: [SortDescriptor(\Category.title)]) private var categories: [Category]
+    @Query(sort: [SortDescriptor(\Season.title)]) private var seasons: [Season]
     
     // Ingredient search
     @State private var ingredient1: String = ""

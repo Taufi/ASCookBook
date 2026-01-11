@@ -14,8 +14,8 @@ struct RecipeDetailView: View {
     @Bindable var recipe: Recipe
     @State var isEditing: Bool
     private let isNew: Bool
-    @Query private var categories: [Category]
-    @Query private var seasons: [Season]
+    @Query(sort: [SortDescriptor(\Category.title)]) private var categories: [Category]
+    @Query(sort: [SortDescriptor(\Season.title)]) private var seasons: [Season]
     
     // Store original values for rollback
     @State private var originalName: String = ""
