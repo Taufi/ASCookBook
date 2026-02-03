@@ -19,6 +19,9 @@ struct ContentView: View {
     @State private var showingPhotoLibrary = false
     @State private var recipeImageData: Data?
     
+    @State private var showingTextRecipeSheet = false
+    @State private var recipeResponseFromText: RecipeResponse?
+    
     // Progress tracking for recipe processing
     @State private var isProcessingRecipe = false
     @State private var processingProgress: Double = 0.0
@@ -36,107 +39,139 @@ struct ContentView: View {
         }
     }
     
-    var body: some View {
-        NavigationStack {
-            VStack {
-                if isProcessingRecipe {
-                    VStack(spacing: 16) {
-                        ProgressView(value: processingProgress, total: 1.0)
-                            .progressViewStyle(LinearProgressViewStyle())
-                            .frame(maxWidth: 200)
-                        
-                        Text(processingMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
+    private var mainContent: some View {
+        VStack {
+            if isProcessingRecipe {
+                VStack(spacing: 16) {
+                    ProgressView(value: processingProgress, total: 1.0)
+                        .progressViewStyle(LinearProgressViewStyle())
+                        .frame(maxWidth: 200)
+                    
+                    Text(processingMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
-                
-                List {
-                    ForEach(filteredRecipes) { recipe in
-                        NavigationLink(value: recipe) {
-                            HStack(alignment: .top, spacing: 12) {
-                                if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 80, height: 80)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                } else  {
-                                    Image("Plate")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 80, height: 80)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                }
-                                VStack(alignment: .leading) {
-                                    Text(recipe.name).bold()
-                                    Text(recipe.category.title)
-                                        .font(.subheadline).foregroundStyle(.secondary)
-                                    Text(recipe.kinds.title)
-                                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                .padding(.horizontal)
+            }
+            
+            List {
+                ForEach(filteredRecipes) { recipe in
+                    NavigationLink(value: recipe) {
+                        HStack(alignment: .top, spacing: 12) {
+                            if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            } else  {
+                                Image("Plate")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            VStack(alignment: .leading) {
+                                Text(recipe.name).bold()
+                                Text(recipe.category.title)
+                                    .font(.subheadline).foregroundStyle(.secondary)
+                                Text(recipe.kinds.title)
                             }
                         }
                     }
-                    .onDelete(perform: deleteRecipes)
                 }
+                .onDelete(perform: deleteRecipes)
             }
-            .task {
-                if recipes.isEmpty {
-                    if let dbURL = Bundle.main.url(forResource: "CookBook", withExtension: "sqlite") {
-                        importLegacyDatabase(dbPath: dbURL.path, context: context)
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            mainContent
+                .task {
+                    if recipes.isEmpty {
+                        if let dbURL = Bundle.main.url(forResource: "CookBook", withExtension: "sqlite") {
+                            importLegacyDatabase(dbPath: dbURL.path, context: context)
+                        }
                     }
                 }
-            }
-            .searchable(text: $searchText, prompt: "Suche Rezepte")
-            .navigationTitle("Rezepte")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button(action: addNewRecipe) {
-                            Label("Neues Rezept", systemImage: "plus")
+                .searchable(text: $searchText, prompt: "Suche Rezepte")
+                .navigationTitle("Rezepte")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Menu {
+                            Button(action: addNewRecipe) {
+                                Label("Neues Rezept", systemImage: "plus")
+                            }
+                            Button(action: { showingAdvancedSearch = true }) {
+                                Label("Erweiterte Suche", systemImage: "magnifyingglass")
+                            }
+                            Button(action: { showingCamera = true }) {
+                                Label("Rezept fotografieren", systemImage: "camera.on.rectangle")
+                            }
+                            Button(action: { showingPhotoLibrary = true }) {
+                                Label("Rezeptfoto aus Galerie", systemImage: "photo.on.rectangle")
+                            }
+                            Button(action: { showingTextRecipeSheet = true }) {
+                                Label("Rezept aus Text", systemImage: "doc.text")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
                         }
-                        Button(action: { showingAdvancedSearch = true }) {
-                            Label("Erweiterte Suche", systemImage: "magnifyingglass")
-                        }
-                        Button(action: { showingCamera = true }) {
-                            Label("Rezept fotografieren", systemImage: "camera.on.rectangle")
-                        }
-                        Button(action: { showingPhotoLibrary = true }) {
-                            Label("Rezeptfoto aus Galerie", systemImage: "photo.on.rectangle")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
                     }
                 }
-            }
-            .navigationDestination(for: Recipe.self) { recipe in
-                RecipeDetailView(recipe: recipe, startInEditMode: false)
-            }
-            .navigationDestination(item: $addedRecipe) { recipe in
-                RecipeDetailView(recipe: recipe, startInEditMode: true)
-            }
-            .sheet(isPresented: $showingAdvancedSearch) {
-                AdvancedSearchView(recipes: recipes)
-            }
-            .sheet(isPresented: $showingCamera) {
-                CameraPicker(selectedImageData: $recipeImageData)
-            }
-            .sheet(isPresented: $showingPhotoLibrary) {
-                PhotoLibraryPicker(selectedImageData: $recipeImageData)
-            }
-            .onChange(of: recipeImageData) {
-                Task { await recipeFromPhoto() }
-            }
-            .alert("Fehler beim Verarbeiten", isPresented: $showingError) {
-                Button("OK") { }
-            } message: {
-                Text(errorMessage)
-            }
+                .navigationDestination(for: Recipe.self) { recipe in
+                    RecipeDetailView(recipe: recipe, startInEditMode: false)
+                }
+                .navigationDestination(item: $addedRecipe) { recipe in
+                    RecipeDetailView(recipe: recipe, startInEditMode: true)
+                }
+        }
+        .sheet(isPresented: $showingAdvancedSearch) {
+            AdvancedSearchView(recipes: recipes)
+        }
+        .sheet(isPresented: $showingCamera) {
+            CameraPicker(selectedImageData: $recipeImageData)
+        }
+        .sheet(isPresented: $showingPhotoLibrary) {
+            PhotoLibraryPicker(selectedImageData: $recipeImageData)
+        }
+        .sheet(isPresented: $showingTextRecipeSheet) {
+            RecipeFromTextView(result: $recipeResponseFromText)
+        }
+        .onChange(of: recipeImageData) {
+            Task { await recipeFromPhoto() }
+        }
+        .onChange(of: recipeResponseFromText) { _, newValue in
+            guard let recipeResponse = newValue else { return }
+            let ingredientsBlock = recipeResponse.ingredients.joined(separator: "\n")
+            let instructions = [ingredientsBlock, recipeResponse.instructions]
+                .compactMap { $0 }
+                .joined(separator: "\n\n")
+            let newRecipe = Recipe(
+                name: recipeResponse.title,
+                place: "",
+                ingredients: instructions,
+                portions: recipeResponse.servings ?? "",
+                season: Season.fetchOrCreate(title: "immer", in: context),
+                category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
+                photo: nil,
+                kinds: Kind(rawValue: 1),
+                specials: Special(rawValue: 0),
+            )
+            context.insert(newRecipe)
+            addedRecipe = newRecipe
+            try? context.save()
+            recipeResponseFromText = nil
+        }
+        .alert("Fehler beim Verarbeiten", isPresented: $showingError) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage)
         }
     }
     

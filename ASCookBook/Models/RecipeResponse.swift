@@ -6,7 +6,7 @@
 //
 import Foundation
 
-struct RecipeResponse: Decodable {
+struct RecipeResponse: Decodable, Equatable {
     let title: String
     let ingredients: [String]
     let instructions: String

@@ -66,6 +66,11 @@ class TextRecognitionService {
         }
     }
     
+    /// Processes pasted or typed recipe text and returns a structured RecipeResponse.
+    func recipeFromText(_ text: String) async throws -> RecipeResponse {
+        try await processRecipeText(text)
+    }
+    
     /// Processes the recognized text and sends it to OpenAI for recipe extraction.
     /// Returns a RecipeResponse or throws.
     private func processRecipeText(_ recipeString: String) async throws -> RecipeResponse {
