@@ -91,66 +91,26 @@ struct RecipeDetailView: View {
             CameraPicker(selectedImageData: $selectedImageData)
         }
         .sheet(isPresented: $showingAddCategoryAlert) {
-            NavigationStack {
-                Form {
-                    Section {
-                        TextField("Kategoriename", text: $newCategoryTitle)
-                    } header: {
-                        Text("Neue Kategorie")
-                    } footer: {
-                        Text("Geben Sie den Namen der neuen Kategorie ein.")
-                    }
-                }
-                .navigationTitle("Kategorie hinzufügen")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Abbrechen") {
-                            newCategoryTitle = ""
-                            showingAddCategoryAlert = false
-                        }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Hinzufügen") {
-                            addNewCategory()
-                            showingAddCategoryAlert = false
-                        }
-                        .disabled(newCategoryTitle.trimmingCharacters(in: .whitespaces).isEmpty)
-                    }
-                }
-            }
-            .presentationDetents([.height(200)])
+            AddTitledEntitySheet(
+                isPresented: $showingAddCategoryAlert,
+                text: $newCategoryTitle,
+                navigationTitle: "Kategorie hinzufügen",
+                sectionHeader: "Neue Kategorie",
+                fieldPlaceholder: "Kategoriename",
+                footer: "Geben Sie den Namen der neuen Kategorie ein.",
+                onAdd: addNewCategory
+            )
         }
         .sheet(isPresented: $showingAddSeasonAlert) {
-            NavigationStack {
-                Form {
-                    Section {
-                        TextField("Jahreszeitname", text: $newSeasonTitle)
-                    } header: {
-                        Text("Neue Jahreszeit")
-                    } footer: {
-                        Text("Geben Sie den Namen der neuen Jahreszeit ein.")
-                    }
-                }
-                .navigationTitle("Jahreszeit hinzufügen")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Abbrechen") {
-                            newSeasonTitle = ""
-                            showingAddSeasonAlert = false
-                        }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Hinzufügen") {
-                            addNewSeason()
-                            showingAddSeasonAlert = false
-                        }
-                        .disabled(newSeasonTitle.trimmingCharacters(in: .whitespaces).isEmpty)
-                    }
-                }
-            }
-            .presentationDetents([.height(200)])
+            AddTitledEntitySheet(
+                isPresented: $showingAddSeasonAlert,
+                text: $newSeasonTitle,
+                navigationTitle: "Jahreszeit hinzufügen",
+                sectionHeader: "Neue Jahreszeit",
+                fieldPlaceholder: "Jahreszeitname",
+                footer: "Geben Sie den Namen der neuen Jahreszeit ein.",
+                onAdd: addNewSeason
+            )
         }
         .onAppear {
             if isEditing && !hasInitializedEditState {
