@@ -30,6 +30,20 @@ struct ContentView: View {
     // Error handling
     @State private var showingError = false
     @State private var errorMessage = ""
+
+    private let alphabet: [Character] = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    
+    /// Single pass over recipes to build letter → first index. Use this once per update and pass the result down.
+    private func letterAnchors(for recipes: [Recipe]) -> [Character: Int] {
+        var result: [Character: Int] = [:]
+        for (index, recipe) in recipes.enumerated() {
+            guard let letter = firstLetter(for: recipe) else { continue }
+            if result[letter] == nil {
+                result[letter] = index
+            }
+        }
+        return result
+    }
     
     var filteredRecipes: [Recipe] {
         if searchText.isEmpty {
@@ -39,14 +53,14 @@ struct ContentView: View {
         }
     }
     
+    @ViewBuilder
     private var mainContent: some View {
-        VStack {
+        let progressView = Group {
             if isProcessingRecipe {
                 VStack(spacing: 16) {
                     ProgressView(value: processingProgress, total: 1.0)
                         .progressViewStyle(LinearProgressViewStyle())
                         .frame(maxWidth: 200)
-                    
                     Text(processingMessage)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -57,34 +71,65 @@ struct ContentView: View {
                 .cornerRadius(12)
                 .padding(.horizontal)
             }
-            
-            List {
-                ForEach(filteredRecipes) { recipe in
-                    NavigationLink(value: recipe) {
-                        HStack(alignment: .top, spacing: 12) {
-                            if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            } else  {
-                                Image("Plate")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        
+        if searchText.isEmpty {
+            // Index bar path: compute anchors once and pass down
+            let anchors = letterAnchors(for: filteredRecipes)
+            ScrollViewReader { proxy in
+                ZStack(alignment: .topTrailing) {
+                    VStack {
+                        progressView
+                        List {
+                            ForEach(Array(filteredRecipes.enumerated()), id: \.element.id) { index, recipe in
+                                recipeRow(recipe: recipe)
+                                    .id(index)
                             }
-                            VStack(alignment: .leading) {
-                                Text(recipe.name).bold()
-                                Text(recipe.category.title)
-                                    .font(.subheadline).foregroundStyle(.secondary)
-                                Text(recipe.kinds.title)
-                            }
+                            .onDelete(perform: deleteRecipes)
+                        }
+                        .safeAreaInset(edge: .trailing, spacing: 0) {
+                            Color.clear.frame(width: 8) //28
                         }
                     }
+                    indexBar(anchors: anchors, proxy: proxy)
                 }
-                .onDelete(perform: deleteRecipes)
+            }
+        } else {
+            // Search active: simple list, no index or anchors
+            VStack {
+                progressView
+                List {
+                    ForEach(filteredRecipes) { recipe in
+                        recipeRow(recipe: recipe)
+                    }
+                    .onDelete(perform: deleteRecipes)
+                }
+            }
+        }
+    }
+    
+    private func recipeRow(recipe: Recipe) -> some View {
+        NavigationLink(value: recipe) {
+            HStack(alignment: .top, spacing: 12) {
+                if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 80, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    Image("Plate")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                VStack(alignment: .leading) {
+                    Text(recipe.name).bold()
+                    Text(recipe.category.title)
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    Text(recipe.kinds.title)
+                }
             }
         }
     }
@@ -101,6 +146,7 @@ struct ContentView: View {
                 }
                 .searchable(text: $searchText, prompt: "Suche Rezepte")
                 .navigationTitle("Rezepte")
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Menu {
@@ -279,6 +325,33 @@ struct ContentView: View {
         }
     }
     
+    private func firstLetter(for recipe: Recipe) -> Character? {
+        let trimmed = recipe.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = trimmed.first else { return nil }
+        
+        let mapped: String
+        switch first {
+        case "Ä", "ä":
+            mapped = "A"
+        case "Ö", "ö":
+            mapped = "O"
+        case "Ü", "ü":
+            mapped = "U"
+        case "ß":
+            mapped = "S"
+        default:
+            mapped = String(first)
+        }
+        
+        let upper = mapped.uppercased()
+        guard let letter = upper.first,
+              ("A"..."Z").contains(String(letter)) else {
+            return nil
+        }
+        
+        return letter
+    }
+    
     private func addNewRecipe() {
         let newRecipe = Recipe(
             name: "Neues Rezept",
@@ -300,6 +373,44 @@ struct ContentView: View {
     private func deleteRecipes(at offsets: IndexSet) {
         for index in offsets {
             context.delete(filteredRecipes[index])
+        }
+    }
+    
+    @ViewBuilder
+    private func indexBar(anchors: [Character: Int], proxy: ScrollViewProxy) -> some View {
+        let availableLetters = anchors.keys.sorted()
+        VStack {
+            ForEach(alphabet, id: \.self) { letter in
+                Button {
+                    scrollToLetter(letter, anchors: anchors, using: proxy)
+                } label: {
+                    Text(String(letter))
+                        .font(.caption2)
+                        .foregroundStyle(availableLetters.contains(letter) ? .secondary : .tertiary)
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 4)
+                }
+                .disabled(!availableLetters.contains(letter))
+            }
+        }
+        .padding(.trailing, 4)
+        .padding(.vertical, 8)
+    }
+    
+    private func scrollToLetter(_ letter: Character, anchors: [Character: Int], using proxy: ScrollViewProxy) {
+        if let targetIndex = anchors[letter] {
+            withAnimation {
+                proxy.scrollTo(targetIndex, anchor: .top)
+            }
+            return
+        }
+        for nextLetter in alphabet where nextLetter > letter {
+            if let targetIndex = anchors[nextLetter] {
+                withAnimation {
+                    proxy.scrollTo(targetIndex, anchor: .top)
+                }
+                return
+            }
         }
     }
 }
