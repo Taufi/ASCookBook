@@ -17,6 +17,13 @@ struct RecipeDetailView: View {
     @Query(sort: [SortDescriptor(\Category.title)]) private var categories: [Category]
     @Query(sort: [SortDescriptor(\Season.title)]) private var seasons: [Season]
     
+    // Local editing state to avoid laggy typing
+    @State private var editedName: String = ""
+    @State private var editedPortions: String = ""
+    @State private var editedIngredients: String = ""
+    @State private var editedPlace: String = ""
+    @State private var hasInitializedEditState: Bool = false
+    
     // Store original values for rollback
     @State private var originalName: String = ""
     @State private var originalPlace: String = ""
@@ -51,16 +58,16 @@ struct RecipeDetailView: View {
                 imageSection
                 
                 if isEditing {
-                    TextField("Name des Rezeptes", text: $recipe.name)
+                    TextField("Name des Rezeptes", text: $editedName)
                         .textFieldStyle(.roundedBorder)
-                    TextField("Portionen", text: $recipe.portions)
+                    TextField("Portionen", text: $editedPortions)
                         .textFieldStyle(.roundedBorder)
                     editIngredients
                     editCategory
                     editSeason
                     editKinds
                     editSpecials
-                    TextField("Quelle des Rezepts", text: $recipe.place)
+                    TextField("Quelle des Rezepts", text: $editedPlace)
                         .textFieldStyle(.roundedBorder)
                 } else {
                     showPortions
@@ -74,7 +81,7 @@ struct RecipeDetailView: View {
             }
             .padding()
         }
-        .navigationTitle(recipe.name)
+        .navigationTitle(isEditing ? editedName : recipe.name)
         .navigationBarBackButtonHidden(isEditing)
         .toolbar { toolBarButtons }
         .onChange(of: selectedItem) { _, newItem in
@@ -144,6 +151,11 @@ struct RecipeDetailView: View {
                 }
             }
             .presentationDetents([.height(200)])
+        }
+        .onAppear {
+            if isEditing && !hasInitializedEditState {
+                syncEditingStateFromRecipe()
+            }
         }
     }
     
@@ -238,6 +250,7 @@ struct RecipeDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Edit") {
                     saveOriginalState()
+                    syncEditingStateFromRecipe()
                     isEditing = true
                 }
             }
@@ -380,7 +393,7 @@ struct RecipeDetailView: View {
     
     private var editIngredients: some View {
         Section {
-            TextEditor(text: $recipe.ingredients)
+            TextEditor(text: $editedIngredients)
                 .frame(height: 300)
                 .border(.gray)
         } header: {
@@ -394,8 +407,16 @@ struct RecipeDetailView: View {
         if let imageData = selectedImageData {
             recipe.photo = imageData
         }
+        
+        // Commit edited text fields back to the model
+        recipe.name = editedName
+        recipe.portions = editedPortions
+        recipe.ingredients = editedIngredients
+        recipe.place = editedPlace
+        
         try? context.save()
         isEditing = false
+        hasInitializedEditState = false
 //        dismiss()
     }
     
@@ -413,7 +434,16 @@ struct RecipeDetailView: View {
         selectedImageData = nil
         selectedItem = nil
         isEditing = false
+        hasInitializedEditState = false
 //        dismiss()
+    }
+    
+    private func syncEditingStateFromRecipe() {
+        editedName = recipe.name
+        editedPortions = recipe.portions
+        editedIngredients = recipe.ingredients
+        editedPlace = recipe.place
+        hasInitializedEditState = true
     }
 
     private func saveOriginalState() {
