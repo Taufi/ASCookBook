@@ -20,7 +20,7 @@ struct ContentView: View {
     @State private var recipeImageData: Data?
     
     @State private var showingTextRecipeSheet = false
-    @State private var recipeResponseFromText: RecipeResponse?
+    @State private var pendingRecipeText: String?
     
     // Progress tracking for recipe processing
     @State private var isProcessingRecipe = false
@@ -187,32 +187,14 @@ struct ContentView: View {
             PhotoLibraryPicker(selectedImageData: $recipeImageData)
         }
         .sheet(isPresented: $showingTextRecipeSheet) {
-            RecipeFromTextView(result: $recipeResponseFromText)
+            RecipeFromTextView(pendingRecipeText: $pendingRecipeText)
         }
         .onChange(of: recipeImageData) {
             Task { await recipeFromPhoto() }
         }
-        .onChange(of: recipeResponseFromText) { _, newValue in
-            guard let recipeResponse = newValue else { return }
-            let ingredientsBlock = recipeResponse.ingredients.joined(separator: "\n")
-            let instructions = [ingredientsBlock, recipeResponse.instructions]
-                .compactMap { $0 }
-                .joined(separator: "\n\n")
-            let newRecipe = Recipe(
-                name: recipeResponse.title,
-                place: "",
-                ingredients: instructions,
-                portions: recipeResponse.servings ?? "",
-                season: Season.fetchOrCreate(title: "immer", in: context),
-                category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
-                photo: nil,
-                kinds: Kind(rawValue: 1),
-                specials: Special(rawValue: 0),
-            )
-            context.insert(newRecipe)
-            addedRecipe = newRecipe
-            try? context.save()
-            recipeResponseFromText = nil
+        .onChange(of: pendingRecipeText) { _, newValue in
+            guard let text = newValue, !text.isEmpty else { return }
+            Task { await recipeFromText(text) }
         }
         .alert("Fehler beim Verarbeiten", isPresented: $showingError) {
             Button("OK") { }
@@ -320,6 +302,71 @@ struct ContentView: View {
                     errorMessage = "Ein Fehler ist aufgetreten: \(error.localizedDescription)"
                 }
                 
+                showingError = true
+            }
+        }
+    }
+    
+    private func recipeFromText(_ text: String) async {
+        await MainActor.run { pendingRecipeText = nil }
+        
+        await MainActor.run {
+            isProcessingRecipe = true
+            processingProgress = 0.5
+            processingMessage = "Rezept wird verarbeitet..."
+        }
+        
+        let service = TextRecognitionService()
+        
+        do {
+            let recipeResponse = try await service.recipeFromText(text)
+            
+            await MainActor.run {
+                processingProgress = 0.75
+                processingMessage = "Rezept wird gespeichert..."
+                let ingredientsBlock = recipeResponse.ingredients.joined(separator: "\n")
+                let instructions = [ingredientsBlock, recipeResponse.instructions]
+                    .compactMap { $0 }
+                    .joined(separator: "\n\n")
+                let newRecipe = Recipe(
+                    name: recipeResponse.title,
+                    place: "",
+                    ingredients: instructions,
+                    portions: recipeResponse.servings ?? "",
+                    season: Season.fetchOrCreate(title: "immer", in: context),
+                    category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
+                    photo: nil,
+                    kinds: Kind(rawValue: 1),
+                    specials: Special(rawValue: 0),
+                )
+                context.insert(newRecipe)
+                addedRecipe = newRecipe
+                try? context.save()
+                processingProgress = 1.0
+                processingMessage = "Fertig!"
+            }
+            
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            await MainActor.run {
+                isProcessingRecipe = false
+                processingProgress = 0.0
+                processingMessage = ""
+            }
+        } catch {
+            await MainActor.run {
+                isProcessingRecipe = false
+                processingProgress = 0.0
+                processingMessage = ""
+                if let nsError = error as NSError? {
+                    switch nsError.domain {
+                    case "OpenAIService":
+                        errorMessage = "Fehler beim Verarbeiten des Rezepts. Code: \(nsError.code). Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
+                    default:
+                        errorMessage = "Ein unbekannter Fehler ist aufgetreten: \(nsError.localizedDescription)"
+                    }
+                } else {
+                    errorMessage = "Ein Fehler ist aufgetreten: \(error.localizedDescription)"
+                }
                 showingError = true
             }
         }
