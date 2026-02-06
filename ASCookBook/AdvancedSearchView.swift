@@ -69,7 +69,6 @@ struct AdvancedSearchView: View {
                     return true
                 }
                 return selectedKinds.isSubset(of: recipe.kinds) // if all selected kinds must match
-//                return !recipe.kinds.intersection(selectedKinds).isEmpty // recipe must contain at least one selected kind
             }()
             
             // Filter by specials
@@ -78,7 +77,6 @@ struct AdvancedSearchView: View {
                     return true
                 }
                 return selectedSpecials.isSubset(of: recipe.specials) // if all selected specials must match
-//                return !recipe.specials.intersection(selectedSpecials).isEmpty //recipe must contain at least one selected special
             }()
             
             return matchesIngredients && matchesCategory && matchesSeason && matchesKinds && matchesSpecials

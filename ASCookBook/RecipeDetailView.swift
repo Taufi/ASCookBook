@@ -502,25 +502,6 @@ struct RecipeDetailView: View {
         }
     }
     
-    /// Generic method to create a picker-based edit section
-//    private func editPickerSection<T: TitledModel>(
-//        selection: Binding<T>,
-//        items: [T],
-//        header: String
-//    ) -> some View {
-//        Section {
-//            Picker(header, selection: selection) {
-//                ForEach(items, id: \.title) { item in
-//                    Text(item.title)
-//                        .tag(item)
-//                }
-//            }
-//        } header: {
-//            Text(header)
-//                .fontWeight(.bold)
-//        }
-//    }
-    
     /// Generic method to create a toggle-based edit section
     private func editToggleSection<T>(
         allCases: [T],
