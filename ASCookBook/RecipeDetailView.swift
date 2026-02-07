@@ -119,79 +119,20 @@ struct RecipeDetailView: View {
         }
     }
     
-    @ViewBuilder
     private var imageSection: some View {
-        let image = selectedImageData ?? recipe.photo
-        if isEditing {
-            VStack(spacing: 12) {
-                // Image display area
-                if let data = image, let uiImage = UIImage(data: data) {
-                    ZStack(alignment: .topTrailing) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-//                        .frame(height: 200)
-                            .cornerRadius(12)
-                            .clipped()
-                        
-                        Button(action: {
-                            selectedImageData = nil
-                            recipe.photo = nil
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .background(Color.black.opacity(0.6))
-                                .clipShape(Circle())
-                                .padding(8)
-                        }
-                    }
-                } else {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(height: 200)
-                        Text("Kein Bild ausgewählt")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                
-                // Action buttons
-                HStack(spacing: 16) {
-                    PhotosPicker(selection: $selectedItem, matching: .images) {
-                        Label("Fotoalbum", systemImage: "photo.on.rectangle")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                    
-                    Button(action: { showingCamera = true }) {
-                        Label("Kamera", systemImage: "camera")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.green)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                }
-            }
-        } else {
-            if let data = recipe.photo, let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .cornerRadius(12)
-            } else {
-                Image("Plate")
-                    .resizable()
-                    .scaledToFit()
-                    .padding()
-            }
-        }
+        RecipeDetailImageSection(
+            isEditing: isEditing,
+            recipePhoto: recipe.photo,
+            selectedImageData: $selectedImageData,
+            selectedItem: $selectedItem,
+            onRemovePhoto: {
+                selectedImageData = nil
+                recipe.photo = nil
+            },
+            onCameraTap: { showingCamera = true }
+        )
     }
-    
+
     @ToolbarContentBuilder
     private var toolBarButtons: some ToolbarContent {
         if isEditing {
