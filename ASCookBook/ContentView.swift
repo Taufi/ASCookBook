@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var context
@@ -17,6 +18,7 @@ struct ContentView: View {
 
     @State private var showingCamera = false
     @State private var showingPhotoLibrary = false
+    @State private var photoLibraryItem: PhotosPickerItem?
     @State private var recipeImageData: Data?
 
     @State private var showingTextRecipeSheet = false
@@ -137,11 +139,16 @@ struct ContentView: View {
         .sheet(isPresented: $showingCamera) {
             CameraPicker(selectedImageData: $recipeImageData)
         }
-        .sheet(isPresented: $showingPhotoLibrary) {
-            PhotoLibraryPicker(selectedImageData: $recipeImageData)
-        }
         .sheet(isPresented: $showingTextRecipeSheet) {
             RecipeFromTextView(pendingRecipeText: $pendingRecipeText)
+        }
+        .photosPicker(
+            isPresented: $showingPhotoLibrary,
+            selection: $photoLibraryItem,
+            matching: .images
+        )
+        .onChange(of: photoLibraryItem) { _, newItem in
+            Task { await loadPhotoFromLibrary(newItem) }
         }
         .onChange(of: recipeImageData) {
             Task {
@@ -164,6 +171,16 @@ struct ContentView: View {
             Button("OK") { }
         } message: {
             Text(importViewModel.errorMessage)
+        }
+    }
+
+    private func loadPhotoFromLibrary(_ item: PhotosPickerItem?) async {
+        guard let item else { return }
+        if let data = try? await item.loadTransferable(type: Data.self) {
+            await MainActor.run {
+                recipeImageData = data
+                photoLibraryItem = nil
+            }
         }
     }
 
