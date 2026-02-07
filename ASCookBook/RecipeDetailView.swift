@@ -386,39 +386,6 @@ struct RecipeDetailView: View {
         try? context.save()
         newSeasonTitle = ""
     }
-    
-    // MARK: - Generic Helper Methods
-    
-    /// Generic method to display a section with optional conditional rendering
-    private func showSection(content: String, header: String, condition: Bool = true) -> some View {
-        Group {
-            if condition {
-                Section {
-                    Text(content)
-                } header: {
-                    Text(header)
-                        .fontWeight(.bold)
-                }
-            }
-        }
-    }
-    
-    /// Generic method to create a toggle-based edit section
-    private func editToggleSection<T>(
-        allCases: [T],
-        binding: @escaping (T) -> Binding<Bool>,
-        displayName: @escaping (T) -> String,
-        header: String
-    ) -> some View {
-        Section {
-            ForEach(allCases.enumerated(), id: \.offset) { index, item in
-                Toggle(displayName(item), isOn: binding(item))
-            }
-        } header: {
-            Text(header)
-                .fontWeight(.bold)
-        }
-    }
 }
 
 #Preview {
