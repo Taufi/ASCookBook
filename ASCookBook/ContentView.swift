@@ -12,6 +12,7 @@ import PhotosUI
 struct ContentView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: [SortDescriptor(\Recipe.name)]) private var recipes: [Recipe]
+    @State private var navigationPath = NavigationPath()
     @State private var searchText: String = ""
     @State private var addedRecipe: Recipe?
     @State private var showingAdvancedSearch = false
@@ -91,7 +92,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             mainContent
                 .task {
                     if recipes.isEmpty {
