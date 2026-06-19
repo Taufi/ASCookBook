@@ -104,6 +104,9 @@ struct RecipeDetailView: View {
         .onChange(of: selectedItem) { _, newItem in
             Task { await loadImage(from: newItem) }
         }
+        .onChange(of: selectedImageData) { _, newData in
+            commitPhotoToRecipe(newData)
+        }
         .onChange(of: editedName) { _, _ in saveEditDraft() }
         .onChange(of: editedPortions) { _, _ in saveEditDraft() }
         .onChange(of: editedIngredients) { _, _ in saveEditDraft() }
@@ -156,7 +159,7 @@ struct RecipeDetailView: View {
             selectedItem: $selectedItem,
             onRemovePhoto: {
                 selectedImageData = nil
-                recipe.photo = nil
+                commitPhotoToRecipe(nil)
             },
             onCameraTap: { showingCamera = true }
         )
@@ -337,11 +340,6 @@ struct RecipeDetailView: View {
     }
     
     private func handleSave() {
-        // Save the selected image to the recipe if one was selected
-        if let imageData = selectedImageData {
-            recipe.photo = imageData
-        }
-        
         // Commit edited text fields back to the model
         recipe.name = editedName
         recipe.portions = editedPortions
@@ -363,16 +361,14 @@ struct RecipeDetailView: View {
             try? context.save()
             dismiss()
         } else {
-            // Restore original values for existing recipes
             restoreOriginalState()
         }
-        // Reset the selected image data
-        selectedImageData = nil
-        selectedItem = nil
         isEditing = false
         clearEditDraft()
         onEditingChanged(false)
         hasInitializedEditState = false
+        selectedImageData = nil
+        selectedItem = nil
 //        dismiss()
     }
     
@@ -406,6 +402,13 @@ struct RecipeDetailView: View {
         recipe.kinds = originalKinds
         recipe.specials = originalSpecials
         recipe.photo = originalPhoto
+        try? context.save()
+    }
+
+    private func commitPhotoToRecipe(_ data: Data?) {
+        guard isEditing else { return }
+        recipe.photo = data
+        try? context.save()
     }
 
     private func restoreEditDraft() -> Bool {
