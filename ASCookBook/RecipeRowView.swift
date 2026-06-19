@@ -10,7 +10,7 @@ struct RecipeRowView: View {
     let recipe: Recipe
 
     var body: some View {
-        NavigationLink(value: recipe) {
+        NavigationLink(value: RecipeRoute(recipe: recipe)) {
             HStack(alignment: .top, spacing: 12) {
                 if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
                     Image(uiImage: uiImage)

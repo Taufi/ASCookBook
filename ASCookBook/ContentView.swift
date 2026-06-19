@@ -9,12 +9,25 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
+struct RecipeRoute: Hashable, Codable {
+    let recipeID: PersistentIdentifier
+    var startInEditMode: Bool
+    let isNew: Bool
+
+    init(recipe: Recipe, startInEditMode: Bool = false, isNew: Bool = false) {
+        self.recipeID = recipe.persistentModelID
+        self.startInEditMode = startInEditMode
+        self.isNew = isNew
+    }
+}
+
 struct ContentView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: [SortDescriptor(\Recipe.name)]) private var recipes: [Recipe]
-    @State private var navigationPath = NavigationPath()
+    @State private var navigationPath: [RecipeRoute] = []
+    @State private var hasRestoredNavigationPath = false
+    @SceneStorage("ContentView.navigationPath") private var storedNavigationPath = ""
     @State private var searchText: String = ""
-    @State private var addedRecipe: Recipe?
     @State private var showingAdvancedSearch = false
 
     @State private var showingCamera = false
@@ -127,12 +140,19 @@ struct ContentView: View {
                         }
                     }
                 }
-                .navigationDestination(for: Recipe.self) { recipe in
-                    RecipeDetailView(recipe: recipe, startInEditMode: false)
+                .navigationDestination(for: RecipeRoute.self) { route in
+                    if let recipe = context.model(for: route.recipeID) as? Recipe {
+                        RecipeDetailView(recipe: recipe, startInEditMode: route.startInEditMode, isNew: route.isNew) { isEditing in
+                            updateNavigationRoute(for: route.recipeID, isEditing: isEditing)
+                        }
+                    } else {
+                        Text("Rezept nicht gefunden")
+                    }
                 }
-                .navigationDestination(item: $addedRecipe) { recipe in
-                    RecipeDetailView(recipe: recipe, startInEditMode: true)
-                }
+        }
+        .onAppear(perform: restoreNavigationPathIfNeeded)
+        .onChange(of: navigationPath) { _, newPath in
+            saveNavigationPath(newPath)
         }
         .sheet(isPresented: $showingAdvancedSearch) {
             AdvancedSearchView(recipes: recipes)
@@ -157,7 +177,7 @@ struct ContentView: View {
                 await importViewModel.recipeFromPhoto(
                     imageData: imageData,
                     context: context,
-                    onRecipeCreated: { addedRecipe = $0 }
+                    onRecipeCreated: { openRecipe($0, startInEditMode: true, isNew: true) }
                 )
             }
         }
@@ -165,7 +185,9 @@ struct ContentView: View {
             guard let text = newValue, !text.isEmpty else { return }
             pendingRecipeText = nil
             Task {
-                await importViewModel.recipeFromText(text, context: context) { addedRecipe = $0 }
+                await importViewModel.recipeFromText(text, context: context) {
+                    openRecipe($0, startInEditMode: true, isNew: true)
+                }
             }
         }
         .alert("Fehler beim Verarbeiten", isPresented: $importViewModel.showingError) {
@@ -198,8 +220,8 @@ struct ContentView: View {
             specials: Special(rawValue: 0),
         )
         context.insert(newRecipe)
-        addedRecipe = newRecipe
         try? context.save()
+        openRecipe(newRecipe, startInEditMode: true, isNew: true)
     }
 
     // KD TODO Error: deletes wrong recipes when in search mode
@@ -207,6 +229,33 @@ struct ContentView: View {
         for index in offsets {
             context.delete(filteredRecipes[index])
         }
+    }
+
+    private func openRecipe(_ recipe: Recipe, startInEditMode: Bool, isNew: Bool = false) {
+        navigationPath.append(RecipeRoute(recipe: recipe, startInEditMode: startInEditMode, isNew: isNew))
+    }
+
+    private func updateNavigationRoute(for recipeID: PersistentIdentifier, isEditing: Bool) {
+        guard let index = navigationPath.lastIndex(where: { $0.recipeID == recipeID }) else { return }
+        navigationPath[index].startInEditMode = isEditing
+    }
+
+    private func restoreNavigationPathIfNeeded() {
+        guard !hasRestoredNavigationPath else { return }
+        hasRestoredNavigationPath = true
+
+        guard
+            let data = Data(base64Encoded: storedNavigationPath),
+            let restoredPath = try? JSONDecoder().decode([RecipeRoute].self, from: data)
+        else {
+            return
+        }
+        navigationPath = restoredPath
+    }
+
+    private func saveNavigationPath(_ path: [RecipeRoute]) {
+        guard let data = try? JSONEncoder().encode(path) else { return }
+        storedNavigationPath = data.base64EncodedString()
     }
 }
 

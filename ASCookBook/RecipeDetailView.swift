@@ -8,12 +8,22 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
+private struct RecipeEditDraft: Codable {
+    let recipeID: PersistentIdentifier
+    let name: String
+    let portions: String
+    let ingredients: String
+    let place: String
+}
+
 struct RecipeDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @Bindable var recipe: Recipe
     @State var isEditing: Bool
     private let isNew: Bool
+    private let onEditingChanged: (Bool) -> Void
     @Query(sort: [SortDescriptor(\Category.title)]) private var categories: [Category]
     @Query(sort: [SortDescriptor(\Season.title)]) private var seasons: [Season]
     
@@ -34,6 +44,7 @@ struct RecipeDetailView: View {
     @State private var originalKinds: Kind = Kind(rawValue: 0)
     @State private var originalSpecials: Special = Special(rawValue: 0)
     @State private var originalPhoto: Data?
+    @SceneStorage("RecipeDetailView.editDraft") private var storedEditDraft = ""
     
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
@@ -45,10 +56,16 @@ struct RecipeDetailView: View {
     @State private var newCategoryTitle = ""
     @State private var newSeasonTitle = ""
     
-    init(recipe: Recipe, startInEditMode: Bool = false) {
+    init(
+        recipe: Recipe,
+        startInEditMode: Bool = false,
+        isNew: Bool = false,
+        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+    ) {
         self.recipe = recipe
         self.isEditing = startInEditMode
-        self.isNew = startInEditMode
+        self.isNew = isNew
+        self.onEditingChanged = onEditingChanged
     }
     
     var body : some View {
@@ -87,6 +104,15 @@ struct RecipeDetailView: View {
         .onChange(of: selectedItem) { _, newItem in
             Task { await loadImage(from: newItem) }
         }
+        .onChange(of: editedName) { _, _ in saveEditDraft() }
+        .onChange(of: editedPortions) { _, _ in saveEditDraft() }
+        .onChange(of: editedIngredients) { _, _ in saveEditDraft() }
+        .onChange(of: editedPlace) { _, _ in saveEditDraft() }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background {
+                saveEditDraft()
+            }
+        }
         .sheet(isPresented: $showingCamera) {
             CameraPicker(selectedImageData: $selectedImageData)
         }
@@ -114,7 +140,10 @@ struct RecipeDetailView: View {
         }
         .onAppear {
             if isEditing && !hasInitializedEditState {
-                syncEditingStateFromRecipe()
+                saveOriginalState()
+                if !restoreEditDraft() {
+                    syncEditingStateFromRecipe()
+                }
             }
         }
     }
@@ -151,8 +180,12 @@ struct RecipeDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Edit") {
                     saveOriginalState()
-                    syncEditingStateFromRecipe()
+                    if !restoreEditDraft() {
+                        syncEditingStateFromRecipe()
+                    }
                     isEditing = true
+                    onEditingChanged(true)
+                    saveEditDraft()
                 }
             }
         }
@@ -317,6 +350,8 @@ struct RecipeDetailView: View {
         
         try? context.save()
         isEditing = false
+        clearEditDraft()
+        onEditingChanged(false)
         hasInitializedEditState = false
 //        dismiss()
     }
@@ -335,6 +370,8 @@ struct RecipeDetailView: View {
         selectedImageData = nil
         selectedItem = nil
         isEditing = false
+        clearEditDraft()
+        onEditingChanged(false)
         hasInitializedEditState = false
 //        dismiss()
     }
@@ -369,6 +406,42 @@ struct RecipeDetailView: View {
         recipe.kinds = originalKinds
         recipe.specials = originalSpecials
         recipe.photo = originalPhoto
+    }
+
+    private func restoreEditDraft() -> Bool {
+        guard let draft = currentEditDraft(), draft.recipeID == recipe.persistentModelID else {
+            return false
+        }
+
+        editedName = draft.name
+        editedPortions = draft.portions
+        editedIngredients = draft.ingredients
+        editedPlace = draft.place
+        hasInitializedEditState = true
+        return true
+    }
+
+    private func saveEditDraft() {
+        guard isEditing else { return }
+        let draft = RecipeEditDraft(
+            recipeID: recipe.persistentModelID,
+            name: editedName,
+            portions: editedPortions,
+            ingredients: editedIngredients,
+            place: editedPlace
+        )
+        guard let data = try? JSONEncoder().encode(draft) else { return }
+        storedEditDraft = data.base64EncodedString()
+    }
+
+    private func clearEditDraft() {
+        guard currentEditDraft()?.recipeID == recipe.persistentModelID else { return }
+        storedEditDraft = ""
+    }
+
+    private func currentEditDraft() -> RecipeEditDraft? {
+        guard let data = Data(base64Encoded: storedEditDraft) else { return nil }
+        return try? JSONDecoder().decode(RecipeEditDraft.self, from: data)
     }
     
     private func addNewCategory() {
