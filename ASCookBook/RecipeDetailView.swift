@@ -24,6 +24,7 @@ struct RecipeDetailView: View {
     @State var isEditing: Bool
     private let isNew: Bool
     private let onEditingChanged: (Bool) -> Void
+    private let onDiscardNewRecipe: (PersistentIdentifier) -> Void
     @Query(sort: [SortDescriptor(\Category.title)]) private var categories: [Category]
     @Query(sort: [SortDescriptor(\Season.title)]) private var seasons: [Season]
     
@@ -60,12 +61,14 @@ struct RecipeDetailView: View {
         recipe: Recipe,
         startInEditMode: Bool = false,
         isNew: Bool = false,
-        onEditingChanged: @escaping (Bool) -> Void = { _ in }
+        onEditingChanged: @escaping (Bool) -> Void = { _ in },
+        onDiscardNewRecipe: @escaping (PersistentIdentifier) -> Void = { _ in }
     ) {
         self.recipe = recipe
         self.isEditing = startInEditMode
         self.isNew = isNew
         self.onEditingChanged = onEditingChanged
+        self.onDiscardNewRecipe = onDiscardNewRecipe
     }
     
     var body : some View {
@@ -356,13 +359,13 @@ struct RecipeDetailView: View {
     
     private func handleCancel() {
         if isNew {
-            recipe.photo = nil //app will crash if photo is not nil
-            context.delete(recipe)
-            try? context.save()
-            dismiss()
-        } else {
-            restoreOriginalState()
+            let recipeID = recipe.persistentModelID
+            storedEditDraft = ""
+            onDiscardNewRecipe(recipeID)
+            return
         }
+
+        restoreOriginalState()
         isEditing = false
         clearEditDraft()
         onEditingChanged(false)
