@@ -12,8 +12,26 @@ import SwiftData
 struct ASCookBookApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .modelContainer(for: [Recipe.self, Category.self, Season.self])
+            AppRootView()
+        }
+    }
+}
+
+private struct AppRootView: View {
+    @State private var isModelContainerReady = false
+
+    var body: some View {
+        Group {
+            if isModelContainerReady {
+                ContentView()
+                    .modelContainer(for: [Recipe.self, Category.self, Season.self])
+            } else {
+                RecipesLoadingView()
+            }
+        }
+        .task {
+            await Task.yield()
+            isModelContainerReady = true
         }
     }
 }

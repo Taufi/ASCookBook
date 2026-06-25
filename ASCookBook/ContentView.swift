@@ -21,9 +21,23 @@ struct RecipeRoute: Hashable, Codable {
     }
 }
 
+struct RecipesLoadingView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+            Text("Lade Rezepte")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+    }
+}
+
 struct ContentView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: [SortDescriptor(\Recipe.name)]) private var recipes: [Recipe]
+    @State private var isLoadingRecipes = true
     @State private var navigationPath: [RecipeRoute] = []
     @State private var hasRestoredNavigationPath = false
     @SceneStorage("ContentView.navigationPath") private var storedNavigationPath = ""
@@ -52,7 +66,7 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private var mainContent: some View {
+    private var recipeListContent: some View {
         let progressView = Group {
             if importViewModel.isProcessingRecipe {
                 VStack(spacing: 16) {
@@ -106,7 +120,10 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            mainContent
+            recipeListContent
+                .task {
+                    await waitForRecipesQuery()
+                }
                 .task {
                     if recipes.isEmpty {
                         if let dbURL = Bundle.main.url(forResource: "CookBook", withExtension: "sqlite") {
@@ -159,6 +176,11 @@ struct ContentView: View {
                     }
                 }
         }
+        .overlay {
+            if isLoadingRecipes {
+                RecipesLoadingView()
+            }
+        }
         .onAppear(perform: restoreNavigationPathIfNeeded)
         .onChange(of: navigationPath) { _, newPath in
             saveNavigationPath(newPath)
@@ -205,6 +227,19 @@ struct ContentView: View {
         } message: {
             Text(importViewModel.errorMessage)
         }
+    }
+
+    private func waitForRecipesQuery() async {
+        let totalCount = (try? context.fetchCount(FetchDescriptor<Recipe>())) ?? 0
+        guard totalCount > 0 else {
+            isLoadingRecipes = false
+            return
+        }
+        while recipes.isEmpty {
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(16))
+        }
+        isLoadingRecipes = false
     }
 
     private func loadPhotoFromLibrary(_ item: PhotosPickerItem?) async {
@@ -292,4 +327,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .modelContainer(for: [Recipe.self, Category.self, Season.self])
 }
