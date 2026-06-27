@@ -11,13 +11,13 @@ import SwiftData
 enum RecipeListLetterAnchors {
     private static let alphabet: [Character] = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-    /// Single pass over recipes to build letter → first index.
-    static func anchors(for recipes: [Recipe]) -> [Character: Int] {
-        var result: [Character: Int] = [:]
-        for (index, recipe) in recipes.enumerated() {
+    /// Single pass over recipes to build letter → first recipe ID.
+    static func anchors(for recipes: [Recipe]) -> [Character: PersistentIdentifier] {
+        var result: [Character: PersistentIdentifier] = [:]
+        for recipe in recipes {
             guard let letter = firstLetter(for: recipe) else { continue }
             if result[letter] == nil {
-                result[letter] = index
+                result[letter] = recipe.persistentModelID
             }
         }
         return result
@@ -55,7 +55,7 @@ enum RecipeListLetterAnchors {
 struct RecipeListIndexBar: View {
     private static let alphabet: [Character] = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-    let anchors: [Character: Int]
+    let anchors: [Character: PersistentIdentifier]
     let proxy: ScrollViewProxy
 
     var body: some View {
@@ -79,19 +79,18 @@ struct RecipeListIndexBar: View {
     }
 
     private func scrollToLetter(_ letter: Character) {
-        if let targetIndex = anchors[letter] {
-            withAnimation {
-                proxy.scrollTo(targetIndex, anchor: .top)
-            }
-            return
+        let targetID: PersistentIdentifier?
+        if let recipeID = anchors[letter] {
+            targetID = recipeID
+        } else {
+            targetID = Self.alphabet
+                .filter { $0 > letter }
+                .compactMap { anchors[$0] }
+                .first
         }
-        for nextLetter in Self.alphabet where nextLetter > letter {
-            if let targetIndex = anchors[nextLetter] {
-                withAnimation {
-                    proxy.scrollTo(targetIndex, anchor: .top)
-                }
-                return
-            }
+        guard let targetID else { return }
+        withAnimation {
+            proxy.scrollTo(targetID, anchor: .top)
         }
     }
 }

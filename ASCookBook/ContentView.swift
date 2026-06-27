@@ -53,6 +53,7 @@ struct ContentView: View {
     @State private var pendingRecipeText: String?
 
     @State private var importViewModel = RecipeImportViewModel()
+    @State private var recipeIDToScrollTo: PersistentIdentifier?
 
     var filteredRecipes: [Recipe] {
         if searchText.isEmpty {
@@ -85,36 +86,42 @@ struct ContentView: View {
             }
         }
 
-        if searchText.isEmpty {
-            let anchors = RecipeListLetterAnchors.anchors(for: filteredRecipes)
-            ScrollViewReader { proxy in
-                ZStack(alignment: .topTrailing) {
-                    VStack {
-                        progressView
-                        List {
-                            ForEach(Array(filteredRecipes.enumerated()), id: \.element.id) { index, recipe in
-                                RecipeRowView(recipe: recipe)
-                                    .id(index)
-                            }
-                            .onDelete(perform: deleteRecipes)
-                        }
-                        .safeAreaInset(edge: .trailing, spacing: 0) {
-                            Color.clear.frame(width: 8)
-                        }
-                    }
-                    RecipeListIndexBar(anchors: anchors, proxy: proxy)
+        let showIndexBar = searchText.isEmpty
+        ScrollViewReader { proxy in
+            ZStack(alignment: .topTrailing) {
+                VStack {
+                    progressView
+                    recipeList(includeIndexBarInset: showIndexBar)
                 }
+                if showIndexBar {
+                    RecipeListIndexBar(
+                        anchors: RecipeListLetterAnchors.anchors(for: filteredRecipes),
+                        proxy: proxy
+                    )
+                }
+            }
+            .onChange(of: recipeIDToScrollTo) { _, recipeID in
+                scrollToRecipeIfNeeded(recipeID, proxy: proxy)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func recipeList(includeIndexBarInset: Bool) -> some View {
+        let list = List {
+            ForEach(filteredRecipes) { recipe in
+                RecipeRowView(recipe: recipe)
+                    .id(recipe.persistentModelID)
+            }
+            .onDelete(perform: deleteRecipes)
+        }
+
+        if includeIndexBarInset {
+            list.safeAreaInset(edge: .trailing, spacing: 0) {
+                Color.clear.frame(width: 8)
             }
         } else {
-            VStack {
-                progressView
-                List {
-                    ForEach(filteredRecipes) { recipe in
-                        RecipeRowView(recipe: recipe)
-                    }
-                    .onDelete(perform: deleteRecipes)
-                }
-            }
+            list
         }
     }
 
@@ -182,8 +189,11 @@ struct ContentView: View {
             }
         }
         .onAppear(perform: restoreNavigationPathIfNeeded)
-        .onChange(of: navigationPath) { _, newPath in
+        .onChange(of: navigationPath) { oldPath, newPath in
             saveNavigationPath(newPath)
+            if newPath.count < oldPath.count, let popped = oldPath.last {
+                recipeIDToScrollTo = popped.recipeID
+            }
         }
         .sheet(isPresented: $showingAdvancedSearch) {
             AdvancedSearchView(recipes: recipes)
@@ -322,6 +332,18 @@ struct ContentView: View {
     private func saveNavigationPath(_ path: [RecipeRoute]) {
         guard let data = try? JSONEncoder().encode(path) else { return }
         storedNavigationPath = data.base64EncodedString()
+    }
+
+    private func scrollToRecipeIfNeeded(_ recipeID: PersistentIdentifier?, proxy: ScrollViewProxy) {
+        guard let recipeID else { return }
+        recipeIDToScrollTo = nil
+        guard filteredRecipes.contains(where: { $0.persistentModelID == recipeID }) else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(50))
+            withAnimation {
+                proxy.scrollTo(recipeID, anchor: .center)
+            }
+        }
     }
 }
 
