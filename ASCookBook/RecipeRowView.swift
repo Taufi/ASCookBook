@@ -5,26 +5,29 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct RecipeRowView: View {
     let recipe: Recipe
+    @State private var thumbnail: UIImage?
 
     var body: some View {
         NavigationLink(value: RecipeRoute(recipe: recipe)) {
             HStack(alignment: .top, spacing: 12) {
-                if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 80, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                } else {
-                    Image("Plate")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 80, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                Group {
+                    if let thumbnail {
+                        Image(uiImage: thumbnail)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        Image("Plate")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    }
                 }
+                .frame(width: 80, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
                 VStack(alignment: .leading) {
                     Text(recipe.name).bold()
                     Text(recipe.category.title)
@@ -32,6 +35,9 @@ struct RecipeRowView: View {
                     Text(recipe.kinds.title)
                 }
             }
+        }
+        .task(id: recipe.persistentModelID) {
+            thumbnail = await RecipeThumbnailCache.thumbnail(for: recipe)
         }
     }
 }

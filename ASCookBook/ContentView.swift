@@ -126,7 +126,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        NavigationStack(path: $navigationPath)  {
             recipeListContent
                 .task {
                     await waitForRecipesQuery()
@@ -263,13 +263,15 @@ struct ContentView: View {
     }
 
     private func addNewRecipe() {
+        let season = Season.fetchOrCreate(title: "immer", in: context)
+        let category = Category.fetchOrCreate(title: "Hauptspeisen", in: context)
         let newRecipe = Recipe(
             name: "Neues Rezept",
             place: "",
             ingredients: "",
             portions: "",
-            season: Season.fetchOrCreate(title: "immer", in: context),
-            category: Category.fetchOrCreate(title: "Hauptspeisen", in: context),
+            season: season,
+            category: category,
             photo: nil,
             kinds: Kind(rawValue: 1),
             specials: Special(rawValue: 0),
