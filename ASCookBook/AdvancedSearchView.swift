@@ -10,6 +10,7 @@ import SwiftData
 
 struct AdvancedSearchView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     let recipes: [Recipe]
     
     @Query(sort: [SortDescriptor(\Category.title)]) private var categories: [Category]
@@ -190,29 +191,7 @@ struct AdvancedSearchView: View {
                 } else {
                     List {
                         ForEach(filteredRecipes) { recipe in
-                            NavigationLink(value: recipe) {
-                                HStack(alignment: .top, spacing: 12) {
-                                    if let photoData = recipe.photo, let uiImage = UIImage(data: photoData) {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                            .frame(width: 80, height: 80)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    } else {
-                                        Image("Plate")
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(width: 80, height: 80)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    }
-                                    VStack(alignment: .leading) {
-                                        Text(recipe.name).bold()
-                                        Text(recipe.category.title)
-                                            .font(.subheadline).foregroundStyle(.secondary)
-                                        Text(recipe.kinds.title)
-                                    }
-                                }
-                            }
+                            RecipeRowView(recipe: recipe)
                         }
                     }
                     .listStyle(.plain)
@@ -227,8 +206,16 @@ struct AdvancedSearchView: View {
                     }
                 }
             }
-            .navigationDestination(for: Recipe.self) { recipe in
-                RecipeDetailView(recipe: recipe)
+            .navigationDestination(for: RecipeRoute.self) { route in
+                if let recipe = context.model(for: route.recipeID) as? Recipe {
+                    RecipeDetailView(
+                        recipe: recipe,
+                        startInEditMode: route.startInEditMode,
+                        isNew: route.isNew
+                    )
+                } else {
+                    Text("Rezept nicht gefunden")
+                }
             }
         }
     }

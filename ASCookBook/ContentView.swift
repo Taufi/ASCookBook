@@ -131,13 +131,14 @@ struct ContentView: View {
                 .task {
                     await waitForRecipesQuery()
                 }
-                .task {
-                    if recipes.isEmpty {
-                        if let dbURL = Bundle.main.url(forResource: "CookBook", withExtension: "sqlite") {
-                            importLegacyDatabase(dbPath: dbURL.path, context: context)
-                        }
-                    }
-                }
+// only for first import of legacy SQLite DB
+//                .task {
+//                    if recipes.isEmpty {
+//                        if let dbURL = Bundle.main.url(forResource: "CookBook", withExtension: "sqlite") {
+//                            importLegacyDatabase(dbPath: dbURL.path, context: context)
+//                        }
+//                    }
+//                }
                 .searchable(text: $searchText, prompt: "Suche Rezepte")
                 .navigationTitle("Rezepte")
                 .navigationBarTitleDisplayMode(.inline)
@@ -165,7 +166,7 @@ struct ContentView: View {
                     }
                 }
                 .navigationDestination(for: RecipeRoute.self) { route in
-                    if let recipe = context.registeredModel(for: route.recipeID) as Recipe? {
+                    if let recipe = context.model(for: route.recipeID) as? Recipe {
                         RecipeDetailView(
                             recipe: recipe,
                             startInEditMode: route.startInEditMode,
@@ -177,9 +178,6 @@ struct ContentView: View {
                         )
                     } else {
                         Text("Rezept nicht gefunden")
-                            .onAppear {
-                                removeInvalidRoutes()
-                            }
                     }
                 }
         }
@@ -215,7 +213,7 @@ struct ContentView: View {
         .onChange(of: recipeImageData) {
             Task {
                 guard let imageData = recipeImageData else { return }
-                recipeImageData = nil
+                recipeImageData = nil // if I try the same image again, "onChange(of: recipeImageData)" will be triggered
                 await importViewModel.recipeFromPhoto(
                     imageData: imageData,
                     context: context,
@@ -307,24 +305,16 @@ struct ContentView: View {
         else {
             return
         }
-        navigationPath = validRoutes(from: restoredPath)
-    }
-
-    private func validRoutes(from routes: [RecipeRoute]) -> [RecipeRoute] {
-        routes.filter { (context.registeredModel(for: $0.recipeID) as Recipe?) != nil }
-    }
-
-    private func removeInvalidRoutes() {
-        let validPath = validRoutes(from: navigationPath)
-        guard validPath.count != navigationPath.count else { return }
-        navigationPath = validPath
+        navigationPath = restoredPath
     }
 
     private func discardNewRecipe(_ recipeID: PersistentIdentifier) {
+        // close DetailView before deleting the recipe in next runloop
         navigationPath.removeAll { $0.recipeID == recipeID }
 
+        // delete the recipe in next runloop
         Task { @MainActor in
-            guard let recipe = context.registeredModel(for: recipeID) as Recipe? else { return }
+            guard let recipe = context.model(for: recipeID) as? Recipe else { return }
             recipe.photo = nil
             context.delete(recipe)
             try? context.save()
