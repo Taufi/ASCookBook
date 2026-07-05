@@ -26,6 +26,15 @@ struct AdvancedSearchView: View {
     @State private var selectedSeason: Season?
     @State private var selectedKinds: Kind = Kind(rawValue: 0)
     @State private var selectedSpecials: Special = Special(rawValue: 0)
+    @State private var isKeyboardVisible = false
+    
+    private var formHeightRatio: CGFloat {
+        isKeyboardVisible ? 0.5 : 1.0 / 3.0
+    }
+    
+    private var resultsHeightRatio: CGFloat {
+        isKeyboardVisible ? 0.5 : 2.0 / 3.0
+    }
     
     private var allIngredients: [String] {
         [ingredient1, ingredient2, ingredient3].filter { !$0.isEmpty }
@@ -86,9 +95,10 @@ struct AdvancedSearchView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Search form
-                Form {
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
+                    // Search form
+                    Form {
                     Section {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Geben Sie bis zu 3 Zutaten ein, um Rezepte zu finden, die alle diese Zutaten enthalten.")
@@ -165,36 +175,41 @@ struct AdvancedSearchView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                }
-                .formStyle(.grouped)
-                
-                Divider()
-                
-                // Results
-                if filteredRecipes.isEmpty && hasActiveFilters {
-                    VStack(spacing: 16) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 50))
-                            .foregroundStyle(.secondary)
-                        
-                        Text("Keine Rezepte gefunden")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                        
-                        Text("Versuchen Sie andere Suchkriterien oder weniger Filter.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemBackground))
-                } else {
-                    List {
-                        ForEach(filteredRecipes) { recipe in
-                            RecipeRowView(recipe: recipe)
+                    .formStyle(.grouped)
+                    .frame(height: geometry.size.height * formHeightRatio)
+                    
+                    Divider()
+                    
+                    // Results
+                    Group {
+                        if filteredRecipes.isEmpty && hasActiveFilters {
+                            VStack(spacing: 16) {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 50))
+                                    .foregroundStyle(.secondary)
+                                
+                                Text("Keine Rezepte gefunden")
+                                    .font(.headline)
+                                    .foregroundStyle(.secondary)
+                                
+                                Text("Versuchen Sie andere Suchkriterien oder weniger Filter.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color(.systemBackground))
+                        } else {
+                            List {
+                                ForEach(filteredRecipes) { recipe in
+                                    RecipeRowView(recipe: recipe)
+                                }
+                            }
+                            .listStyle(.plain)
                         }
                     }
-                    .listStyle(.plain)
+                    .frame(height: geometry.size.height * resultsHeightRatio)
                 }
             }
             .navigationTitle("Erweiterte Suche")
@@ -215,6 +230,16 @@ struct AdvancedSearchView: View {
                     )
                 } else {
                     Text("Rezept nicht gefunden")
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                withAnimation(.easeOut(duration: 0.25)) {
+                    isKeyboardVisible = true
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                withAnimation(.easeOut(duration: 0.25)) {
+                    isKeyboardVisible = false
                 }
             }
         }
