@@ -10,6 +10,7 @@ import UIKit
 
 struct CameraPicker: UIViewControllerRepresentable {
     @Binding var selectedImageData: Data?
+    var onPhotoCaptured: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -35,6 +36,7 @@ struct CameraPicker: UIViewControllerRepresentable {
         
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let originalImage = info[.originalImage] as? UIImage {
+                parent.onPhotoCaptured?()
                 parent.selectedImageData = originalImage.jpegData(compressionQuality: 0.8)
             }
             parent.dismiss()

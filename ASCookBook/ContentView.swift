@@ -71,13 +71,10 @@ struct ContentView: View {
         let progressView = Group {
             if importViewModel.isProcessingRecipe {
                 VStack(spacing: 16) {
-                    ProgressView(value: importViewModel.processingProgress, total: 1.0)
-                        .progressViewStyle(LinearProgressViewStyle())
-                        .frame(maxWidth: 200)
-                    Text(importViewModel.processingMessage)
+                    ProgressView()
+                    Text("Rezept wird erstellt")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
                 }
                 .padding()
                 .background(Color(.systemGray6))
@@ -197,7 +194,9 @@ struct ContentView: View {
             AdvancedSearchView(recipes: recipes)
         }
         .sheet(isPresented: $showingCamera) {
-            CameraPicker(selectedImageData: $recipeImageData)
+            CameraPicker(selectedImageData: $recipeImageData) {
+                importViewModel.beginRecipeImport()
+            }
         }
         .sheet(isPresented: $showingTextRecipeSheet) {
             RecipeFromTextView(pendingRecipeText: $pendingRecipeText)
@@ -252,11 +251,14 @@ struct ContentView: View {
 
     private func loadPhotoFromLibrary(_ item: PhotosPickerItem?) async {
         guard let item else { return }
-        if let data = try? await item.loadTransferable(type: Data.self) {
-            await MainActor.run {
-                recipeImageData = data
-                photoLibraryItem = nil
-            }
+        importViewModel.beginRecipeImport()
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            importViewModel.cancelRecipeImport()
+            return
+        }
+        await MainActor.run {
+            recipeImageData = data
+            photoLibraryItem = nil
         }
     }
 

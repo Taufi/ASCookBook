@@ -10,12 +10,18 @@ import SwiftUI
 @Observable
 final class RecipeImportViewModel {
     var isProcessingRecipe = false
-    var processingProgress: Double = 0.0
-    var processingMessage = ""
     var showingError = false
     var errorMessage = ""
 
     private let service = TextRecognitionService()
+
+    func beginRecipeImport() {
+        isProcessingRecipe = true
+    }
+
+    func cancelRecipeImport() {
+        isProcessingRecipe = false
+    }
 
     /// Call when user picks an image; creates a recipe and reports it via onRecipeCreated.
     func recipeFromPhoto(
@@ -24,25 +30,14 @@ final class RecipeImportViewModel {
         onRecipeCreated: @escaping (Recipe) -> Void
     ) async {
         isProcessingRecipe = true
-        processingProgress = 0.0
-        processingMessage = "Bild wird analysiert..."
 
         do {
-            processingProgress = 0.3
-            processingMessage = "Text wird erkannt..."
-
             let recipeResponse = try await service.extractRecipe(from: imageData)
-
-            processingProgress = 0.7
-            processingMessage = "Rezept wird verarbeitet..."
 
             let ingredientsBlock = recipeResponse.ingredients.joined(separator: "\n")
             let instructions = [ingredientsBlock, recipeResponse.instructions]
                 .compactMap { $0 }
                 .joined(separator: "\n\n")
-
-            processingProgress = 0.9
-            processingMessage = "Rezept wird gespeichert..."
 
             let newRecipe = Recipe(
                 name: recipeResponse.title,
@@ -59,15 +54,11 @@ final class RecipeImportViewModel {
             try? context.save()
             onRecipeCreated(newRecipe)
 
-            processingProgress = 1.0
-            processingMessage = "Fertig!"
-
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            resetProgress()
+            isProcessingRecipe = false
         } catch {
             print("Error extracting recipe from photo: \(error)")
             showError(error)
-            resetProgress()
+            isProcessingRecipe = false
         }
     }
 
@@ -78,14 +69,9 @@ final class RecipeImportViewModel {
         onRecipeCreated: @escaping (Recipe) -> Void
     ) async {
         isProcessingRecipe = true
-        processingProgress = 0.5
-        processingMessage = "Rezept wird verarbeitet..."
 
         do {
             let recipeResponse = try await service.recipeFromText(text)
-
-            processingProgress = 0.75
-            processingMessage = "Rezept wird gespeichert..."
 
             let ingredientsBlock = recipeResponse.ingredients.joined(separator: "\n")
             let instructions = [ingredientsBlock, recipeResponse.instructions]
@@ -107,21 +93,11 @@ final class RecipeImportViewModel {
             try? context.save()
             onRecipeCreated(newRecipe)
 
-            processingProgress = 1.0
-            processingMessage = "Fertig!"
-
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            resetProgress()
+            isProcessingRecipe = false
         } catch {
             showError(error)
-            resetProgress()
+            isProcessingRecipe = false
         }
-    }
-
-    private func resetProgress() {
-        isProcessingRecipe = false
-        processingProgress = 0.0
-        processingMessage = ""
     }
 
     private func showError(_ error: Error) {
